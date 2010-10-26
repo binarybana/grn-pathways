@@ -8,7 +8,7 @@ import System.Cmd
 import Control.Monad
 import Data.List
 import qualified Data.Map as M
-import Parsea
+import Parse
 import Data.Ratio
 
 {--
@@ -20,13 +20,13 @@ testDot = writeFile "tesths.dot" (graphviz myGraph "fgl" (8,8) (1,1) Portrait)
 -- dot -Tpng -o tesths.png tesths.dot
 --}
 
-data NodeInfo = NodeInfo String Double 
+data NodeInfo = NodeInfo String Rational
+type ColoredStateTGraph = Gr NodeInfo Rational
 
 instance Show NodeInfo where
-    show (NodeInfo name num) = name ++ "\t" ++ (show num) ++ "\t"
+    show (NodeInfo name num) = name ++ "\t" ++ (show $ fromRational num) ++ "\t"
 
 type StateTGraph = Gr String String
-type ColoredStateTGraph = Gr NodeInfo Double
 
 dec2bin :: Int -> Int -> [Int]
 dec2bin y len = (replicate (len-(length res)) 0) ++ res -- need to add padding
@@ -42,22 +42,23 @@ fullIteration = iterateProbs2.iterateProbs
 iterateProbs2 :: ColoredStateTGraph -> ColoredStateTGraph
 iterateProbs2 sgraph = gmap flowProbs sgraph
             where   flowProbs (adj1,node, (NodeInfo a oldprob) , adj2)=(newIns, node, NodeInfo a newProb, newOuts)  
-                        where   newProb = sum $ map (\(_,p,a)->if p==node then a else 0.0) (labEdges sgraph)
-                                newOuts = map (\(_,w)->(0.0,w)) adj2
-                                newIns = map (\(_,w)->(0.0,w)) adj1
+                        where   newProb = sum $ map (\(_,p,a)->if p==node then a else 0) (labEdges sgraph)
+                                newOuts = map (\(_,w)->(0,w)) adj2
+                                newIns = map (\(_,w)->(0,w)) adj1
 iterateProbs :: ColoredStateTGraph -> ColoredStateTGraph
 iterateProbs sgraph = gmap flowProbs sgraph
-            where   flowProbs  (adj1, node, (NodeInfo a oldprob), adj2) = (newIns, node, NodeInfo a 0.0, newOuts)  
+            where   flowProbs  (adj1, node, (NodeInfo a oldprob), adj2) = (newIns, node, NodeInfo a 0, newOuts)  
                         where   newOuts = map (\(_,w)->(newSplitProb,w)) adj2
                                 newIns = map updateIns adj1
                                 updateIns (l,n) = let   c@(_,_,(NodeInfo _ p),_) = context sgraph n 
                                                         num = fromIntegral $ toInteger $ outdeg' c         
                                                 in (p/num,n)
                                 newSplitProb = oldprob/outdegree
-                                outdegree = fromIntegral $ toInteger $ length adj2
+                                outdegree = let c = context sgraph node
+                                            in fromIntegral $ toInteger $ outdeg' c
 
 initProbs :: StateTGraph -> ColoredStateTGraph
-initProbs sgraph = gmap initProb (emap (\x->0.0) sgraph)
+initProbs sgraph = gmap initProb (emap (\x->0) sgraph)
             where   initProb (adj1, node, a, adj2) = (adj1, node, NodeInfo a (1.0/num), adj2)
                     num = fromIntegral $ toInteger $ length $ nodes sgraph
 
@@ -156,8 +157,12 @@ test0 = do
         let g = (initProbs.buildStateTGraph) p
         return g
 
+sumGraph g = nodes + edges
+        where   nodes = (fromRational.sum.(map (prob.snd)).labNodes) g
+                edges = (fromRational.sum.(map (\(_,_,p)->p)).labEdges) g
+                prob (NodeInfo a pr) = pr
 testNFKB = do
-        let n = "nfkb-easy"
+        let n = "grn"
         let nw = n ++ ".pw"
         let nd = n ++ ".dot"
         let ns = n ++ ".svg"
@@ -165,15 +170,14 @@ testNFKB = do
         let p = parsePW con
         print $ M.keys p
         let initg = (initProbs.buildStateTGraph) p
-        let gl = take 500 $ iterate fullIteration initg
+        let gl = take 20 $ iterate fullIteration initg
         let g = last gl
-        let prob (NodeInfo a pr) = pr
-        print $ map (sum.(map (prob.snd)).labNodes) gl
+        print $ map sumGraph gl 
 
-        print g 
-        writeFile nd (Gv.graphvizWithNodeFormatter cus g "fgl" (5,5) (1,1) Gv.Portrait)
+        --print gl
+        --writeFile nd (Gv.graphvizWithNodeFormatter cus g "fgl" (5,5) (1,1) Gv.Portrait)
         --rawSystem "neato" ["-Tsvg","-o","nfkb.svg","nfkb.dot","-Gsplines=True","-Goverlap=false"]
-        rawSystem "dot" ["-Tsvg","-o",ns,nd]
+        --rawSystem "dot" ["-Tsvg","-o",ns,nd]
 
 cus (NodeInfo name prob) = "[label=\""++name++"\",style=\"filled\",fillcolor=\"0.0 0.0 "++shade++"\"]"
                 where shade = show (1-prob)
