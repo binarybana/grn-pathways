@@ -103,5 +103,6 @@ sl a
     | show a == "\"red\"" = " [color=\"red\",arrowhead=\"none\"]"
     | show a == "\"tee\"" = " [arrowtype=\"tee\"]"
     | show a == "0.0" = ""
+    | show a == "0 % 1" = ""
     | otherwise =   let l = sq (show a)
                     in if (l /= "()") then (" [label = \""++l++"\"]") else ""

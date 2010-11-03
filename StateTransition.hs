@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module StateTransition where
 
 import Data.Graph.Inductive
@@ -7,6 +9,7 @@ import System.Cmd
 
 import Control.Monad
 import Data.List
+import Data.Maybe
 import qualified Data.Map as M
 import Parse
 import Data.Ratio
@@ -20,7 +23,7 @@ testDot = writeFile "tesths.dot" (graphviz myGraph "fgl" (8,8) (1,1) Portrait)
 -- dot -Tpng -o tesths.png tesths.dot
 --}
 
-data NodeInfo = NodeInfo String Rational
+data NodeInfo = NodeInfo String !Rational
 type ColoredStateTGraph = Gr NodeInfo Rational
 
 instance Show NodeInfo where
@@ -85,9 +88,14 @@ buildStateTGraph pdata = mkGraph permedNodeStates edges
 calcGene :: [Int] -> Int -> ParseData -> ([Int] -> [[Int]])
 -- Given a state, and the gene number of interest, return a function
 calcGene st prog pdata
+    | hasKnockout = thisKnockout 
     | length thisDeps == 0 = thisCurr
     | otherwise = transInfo
     where   names = M.keys pdata
+            hasKnockout = isJust $ knockout thisGI
+            thisKnockout = case (fromMaybe False (knockout thisGI)) of
+                False -> det0
+                True  -> det1
             thisDeps = depends thisGI
             thisGI = getGI thisName
             thisPways = pathways thisGI
@@ -148,36 +156,43 @@ buildGeneGraph pdata = mkGraph lnodes edges
             name2NodeMap = zip (M.keys pdata) [1..] 
             allUpStream = concatMap (\(Pathway xs _ _ _)->xs) . pathways
 
+n = "nfkb-easy"
+nw = n ++ ".pw"
+nd = n ++ ".dot"
+ns = n ++ ".svg"
+
+cus (NodeInfo name prob) = "[label=\""++name++"\",style=\"filled\",fillcolor=\"0.0 0.0 "++shade++"\"]"
+                where   shade = show $ 1 - (clamp.gammaCorr.fromRational) prob
+                        gammaCorr x = x**0.4
+                        clamp x = if x>1 then 1 else if x<0 then 0 else x
+
+genSSA g = foldr (zipWith (+)) (replicate len 0) filt2
+    where   len = length $ name $ head filt1
+            filt1 = map snd (labNodes g)
+            filt2 = map weight filt1 
+            weight (NodeInfo a pr) = map ((*pr).conv) a
+            conv = (\x->if x=='1' then 1 else 0) 
+            name (NodeInfo a pr) = a
+            prob (NodeInfo a pr) = pr
+
 main = testNFKB
 
 test0 = do 
-        let nw = "nfkb-easy.pw"
         con <- readFile nw
         let p = parsePW con
         let g = (initProbs.buildStateTGraph) p
-        return g
+        let gl = take 30 $ iterate fullIteration g
+        return gl
 
-sumGraph g = nodes + edges
-        where   nodes = (fromRational.sum.(map (prob.snd)).labNodes) g
-                edges = (fromRational.sum.(map (\(_,_,p)->p)).labEdges) g
-                prob (NodeInfo a pr) = pr
 testNFKB = do
-        let n = "grn"
-        let nw = n ++ ".pw"
-        let nd = n ++ ".dot"
-        let ns = n ++ ".svg"
         con <- readFile nw
         let p = parsePW con
         print $ M.keys p
         let initg = (initProbs.buildStateTGraph) p
-        let gl = take 20 $ iterate fullIteration initg
+        let gl = take 30 $ iterate fullIteration initg
         let g = last gl
-        print $ map sumGraph gl 
-
-        --print gl
-        --writeFile nd (Gv.graphvizWithNodeFormatter cus g "fgl" (5,5) (1,1) Gv.Portrait)
+        --print g
+        writeFile nd (Gv.graphvizWithNodeFormatter cus g "fgl" (5,5) (1,1) Gv.Portrait)
         --rawSystem "neato" ["-Tsvg","-o","nfkb.svg","nfkb.dot","-Gsplines=True","-Goverlap=false"]
-        --rawSystem "dot" ["-Tsvg","-o",ns,nd]
+        rawSystem "dot" ["-Tsvg","-o",ns,nd]
 
-cus (NodeInfo name prob) = "[label=\""++name++"\",style=\"filled\",fillcolor=\"0.0 0.0 "++shade++"\"]"
-                where shade = show (1-prob)

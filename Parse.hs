@@ -11,6 +11,7 @@ data Pathway = Pathway [Gene] Bool Bool [Gene] deriving (Show)
 
 data GeneInfo = GeneInfo {
                     name        :: Gene,
+                    knockout    :: Maybe Bool,
                     depends     :: [Gene],
                     pathways    :: [Pathway] } deriving (Show)
 
@@ -40,14 +41,26 @@ paths = do
         let i2b x = if x == '0' then False else True
         return $ Just (Pathway gpre (i2b pre) (i2b post) gpost)
 
+knocks = do
+        gene <- many1 alphaNum
+        char '='
+        kstate <- digit
+        let kbool = if kstate == '0' then False else True
+        return $ Just (gene,kbool)
+
+addKnock (gene, kbool) initMap = M.adjust (\x -> x{knockout=Just kbool}) gene initMap
+
 addPath (Pathway _ _  _  []) initMap =  initMap
 addPath (Pathway a b1 b2 (p:ps)) initMap = addPath (Pathway a b1 b2 ps) postMap 
         where   postMap = M.adjust (\x -> x{pathways=pw:(pathways x)}) p initMap
                 pw = Pathway a b1 b2 [p]
 
-parsePW input = foldr addPath initMap pathList
-        where   initMap = M.fromList $ map create depsList
-                create (g,d) = (g, GeneInfo g d [])
+
+parsePW input = foldr addKnock pathMap knockList
+        where   pathMap = foldr addPath initMap pathList
+                initMap = M.fromList $ map create depsList
+                create (g,d) = (g, GeneInfo g Nothing d [])
+                knockList = execute knocks "Knockouts"
                 depsList = execute deps "Dependencies"
                 pathList = execute paths "Pathways" 
                 execute fn passname = case parse (parsePass fn) passname input of
