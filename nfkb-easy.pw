@@ -1,17 +1,25 @@
 # Comment
 
 #a20=0
+#tnf=1
+#lps=1
 
 nfkb(ikk,ikb)
 ikb(ikk,nfkb)
-ikk(rip)
+ikk(lps,rip)
 a20(nfkb)
 rip(a20,tnf)
 tnf()
+lps()
 
+rip&&!lps-1,1->ikk
+!rip&&lps-1,1->ikk
 rip-1,1->ikk
 rip-0,0->ikk
+lps-1,1->ikk
+lps-0,0->ikk
 
+a20&&tnf-1,0->rip
 a20-1,0->rip
 tnf-1,1->rip
 tnf-0,0->rip
@@ -22,5 +30,6 @@ nfkb-0,0->a20
 ikk-0,1->ikb
 ikk-1,0->ikb
 
+ikb&&ikk-1,1->nfkb
 ikb-1,0->nfkb
 ikb-0,1->nfkb

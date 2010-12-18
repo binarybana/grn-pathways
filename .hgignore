@@ -1,0 +1,8 @@
+syntax: glob
+
+*.svg
+*.dot
+*.hi
+*.o
+*~
+*.pdf

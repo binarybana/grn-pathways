@@ -1,5 +1,5 @@
 -- | Simple graphviz output.
-module Graphviz(
+module GRN.Graphviz(
     Orient(..),
     graphviz, graphviz', clustgraphviz, graphvizWithNodeFormatter
 ) where

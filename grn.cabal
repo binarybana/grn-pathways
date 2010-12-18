@@ -1,0 +1,13 @@
+Name:                grn
+Version:             0.1
+Description:         GRN inference from Pathways
+License:             GPL
+License-file:        LICENSE
+Author:              Jason Knight
+Maintainer:          binarybana@gmail.com
+Build-Type:          Simple
+Cabal-Version:	     >=1.2
+
+Executable GrnSim
+  Main-is:	        GrnSim.hs
+  Build-Depends:    base,fgl,parsec >= 3,graphviz,containers,process,regex-posix

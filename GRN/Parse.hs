@@ -1,4 +1,4 @@
-module Parse where
+module GRN.Parse where
 
 import Text.Parsec
 import Text.Parsec.String
@@ -31,7 +31,7 @@ deps = do
 
 paths :: Parser (Maybe Pathway)
 paths = do
-        gpre <- sepBy1 (many1 alphaNum) (string "&&")
+        gpre <- sepBy1 (many1 (noneOf "#&-\n")) (string "&&")
         char '-'
         pre <- digit
         char ','
