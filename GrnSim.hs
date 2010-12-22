@@ -5,60 +5,91 @@ import GRN.Graphviz
 import GRN.StateTransition
 
 import Data.Graph.Inductive hiding (Portrait)
+import Data.Graph.Analysis
 
 import qualified Data.Map as M
-import System.Cmd
+import Data.List
 import Control.Monad
 import Text.Printf
 import System.Environment
+import System.Cmd
+import System.Console.ParseArgs
+import System.FilePath
+import System.Directory
+
+argList :: [Arg String]
+argList = 
+ [ Arg "output" (Just 'o') (Just "output") 
+    (argDataDefaulted "FILE" ArgtypeString "out.svg") "Output file."
+ , Arg "extra" (Just 'e') (Just "extra") 
+    (argDataDefaulted "PW_ARGS" ArgtypeString "") 
+    "Extra Pathway arguments; space delimited."
+ , Arg "reduce" (Just 'r') (Just "reduce") Nothing 
+    "Reduce output graph to attractor cycles." 
+ , Arg "open" (Just 'x') (Just "open") Nothing 
+    "Open generated image automatically"
+ , Arg "n1" Nothing (Just "n1") 
+    (argDataDefaulted "INT" ArgtypeInt 15)
+    "Default first elimination pass amount"
+ , Arg "n2" Nothing (Just "n2")
+    (argDataDefaulted "INT" ArgtypeInt 140)
+    "Default second elimination pass amount"
+ , Arg "mode" (Just 'm') (Just "mode")
+    (argDataDefaulted "MODE" ArgtypeString "s")
+    "s:state transition graph, p:pathway diagram."
+ , Arg "input" Nothing Nothing
+    (argDataRequired "FILE" ArgtypeString) "Input File."
+ ]
 
 main = do
-    args <- getArgs
-    let n = head args
-        nw = n ++ ".pw"
-        nd = n ++ ".dot"
-        ns = n ++ ".svg"
-    con <- readFile nw
-    let p = parsePW con
-        initg = (initProbs.buildStateTGraph) p
-        gl = take 15 $ iterate (stripTransNodes.fullIteration) initg
-        gl2 = take 135 $ iterate fullIteration (last gl)
-        g = last gl2
-    mapM_ (printf "%7s") (M.keys p)
-    putStrLn ""
-    genPrintSSA $ genSSA g
-    writeFile nd 
-        (graphvizWithNodeFormatter cus g "fgl" (5,5) (1,1) Portrait)
-    rawSystem "dot" ["-Tsvg","-o",ns,nd]
+    args <- parseArgsIO ArgsComplete argList
+    let inFile = getRequiredArg args "input"
+        n1 = getRequiredArg args "n1"
+        n2 = getRequiredArg args "n2"
+        mode = getRequiredArg args "mode"
+    if (length (["s","p"]\\[mode]) == 2)
+        then error $ usageError args "Choose a mode: s-state, p-pathway."
+        else return ()
+    con <- readFile inFile 
+    let p = parsePW $ con ++ (unlines.words $ getRequiredArg args "extra")
 
-
-n = "nfkb-easy"
-nw = n ++ ".pw"
-nd = n ++ ".dot"
-ns = n ++ ".svg"
-
-testGraph = do 
-        con <- readFile nw
-        let p = parsePW con
-        let g = (initProbs.buildStateTGraph) p
-        let gl = take 30 $ iterate fullIteration g
-        return $ last gl 
-
-testPrint = do
-    g <- testGraph 
-    genPrintSSA $ genSSA g
-
-testDraw = do
-        con <- readFile nw
-        let p = parsePW con
-        print $ M.keys p
+    when (mode == "s") $ do
         let initg = (initProbs.buildStateTGraph) p
-        let gl = take 30 $ iterate fullIteration initg
-        let g = last gl
-        writeFile nd 
-            (graphvizWithNodeFormatter cus g "fgl" (5,5) (1,1) Portrait)
-        --rawSystem "neato" ["-Tsvg","-o","nfkb.svg","nfkb.dot",
-            --"-Gsplines=True","-Goverlap=false"]
-        rawSystem "dot" ["-Tsvg","-o",ns,nd]
-        return g
+            reduceGraph = gotArg args "reduce"
+            finalGraph = if reduceGraph 
+                then (pass n2 fullIteration).
+                    (pass n1 (stripTransNodes.fullIteration)) $ initg
+                else pass (n1+n2) fullIteration initg
+            pass n f = last.take n.iterate f 
+        mapM_ (printf "%7s") (M.keys p)
+        putStrLn ""
+        genPrintSSA $ genSSA finalGraph
+        drawStateGraph finalGraph args
+        return ()
 
+    when (mode == "p") $ do
+        let finalGraph = mkSimple $ buildGeneGraph p
+        drawGeneGraph finalGraph args
+        return ()
+
+drawGeneGraph gr args = do
+    let outImg = getRequiredArg args "output"
+        outDot = (dropExtension outImg) ++ ".dot"
+    writeFile outDot
+        (GRN.Graphviz.graphviz gr "fgl" (5,5) (1,1) Portrait)
+    rawSystem "dot" ["-Tsvg","-o",outImg,outDot]
+    when (gotArg args "open") $ do
+        rawSystem "xdg-open" [outImg]
+        return ()
+    removeFile outDot
+
+drawStateGraph gr args = do
+    let outImg = getRequiredArg args "output"
+        outDot = (dropExtension outImg) ++ ".dot"
+    writeFile outDot 
+        (graphvizWithNodeFormatter cus gr "fgl" (5,5) (1,1) Portrait)
+    rawSystem "dot" ["-Tsvg","-o",outImg,outDot]
+    when (gotArg args "open") $ do
+        rawSystem "xdg-open" [outImg]
+        return ()
+    removeFile outDot

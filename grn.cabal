@@ -10,4 +10,5 @@ Cabal-Version:	     >=1.2
 
 Executable GrnSim
   Main-is:	        GrnSim.hs
-  Build-Depends:    base,fgl,parsec >= 3,graphviz,containers,process,regex-posix
+  Build-Depends:    base,fgl,parsec >= 3,graphviz,containers,process,
+                    regex-posix,directory,filepath,parseargs,Graphalyze
