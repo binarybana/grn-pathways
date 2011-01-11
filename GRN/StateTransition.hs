@@ -194,8 +194,16 @@ cus (NodeInfo name prob) = "[label=\""++name++
                         gammaCorr x = x**0.4
                         clamp x = if x>1 then 1 else if x<0 then 0 else x
 
-genSSA :: Graph gr => gr NodeInfo b -> [Double]
-genSSA g = foldr (zipWith (+)) (replicate len 0) filt2
+genSSA :: Gr NodeInfo Double -> [Double]
+genSSA g = map (/denom) $ foldl1 (zipWith (+)) ssaList
+    where
+        denom = fromIntegral n
+        n = 8
+        ssaList = map genSSA' glist
+        glist = take n $ iterate fullIteration g
+
+genSSA' :: Graph gr => gr NodeInfo Double -> [Double]
+genSSA' g = foldr (zipWith (+)) (replicate len 0) filt2
     where   len = length $ name $ head filt1
             filt1 = map snd (labNodes g)
             filt2 = map weight filt1 
