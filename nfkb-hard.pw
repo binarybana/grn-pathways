@@ -10,15 +10,27 @@ ikb (ikkb,p65,ikka)
 # ^^ ikka from Li PNAS 2005
 
 a20 (p65)
-tnf ()
+tnf (irf3)
 tnfr (tnf,a20)
 lps ()
-ikkb (lps,tnfr,ltbr)
+rip (tnfr)
+irf3 (lps)
+ikkb (lps,rip,ltbr)
 
 ltbr ()
 p52  (ikka,ikkb)
 ikka (ltbr)
 ######################
+# 2 p.348
+tnfr        -1,1-> rip
+tnfr        -0,0-> rip
+
+# 3
+lps         -1,1-> irf3
+lps         -0,0-> irf3
+irf3        -1,1-> tnf
+irf3        -0,0-> tnf
+
 # 1
 ikka        -1,1-> p52
 ikka        -0,0-> p52
@@ -26,6 +38,7 @@ ikka        -0,0-> p52
 # 1
 ltbr        -1,1-> ikka
 
+# 4
 a20 && tnf  -1,0-> tnfr
 a20         -1,0-> tnfr
 tnf         -1,1-> tnfr
@@ -34,8 +47,9 @@ tnf         -0,0-> tnfr
 # 1
 ltbr                -1,1-> ikkb
 lps                 -1,1-> ikkb
-tnfr                -1,1-> ikkb
-lps && ltbr && tnfr -0,0-> ikkb
+# 2 p.348
+rip                 -1,1-> ikkb
+lps && ltbr && rip  -0,0-> ikkb
 
 p65         -1,1-> ikb && a20
 p65         -0,0-> a20
@@ -52,3 +66,11 @@ ikb         -0,1-> p65
 
 
 # 1 Hayden and Ghosh 2004 Signaling to NFKB Review
+# 2 Hayden and Ghosh 2008 Sharer Principles in nf-kb signaling
+# 3 Werner et al 2005 Science. Stimulus LPS Specificity
+# 4 Lee et al 2000 Science. Failure to Regulate TNF-Induced NF-KB 
+#   and Cell Death Responses in A20-Deficient Mice
+
+# A20 Knockout study from 3 Success! P65 is higher with A20=0 under
+# "lps=0 tnf=1" conditions
+#

@@ -26,6 +26,8 @@ argList =
     "Extra Pathway arguments; space delimited."
  , Arg "reduce" (Just 'r') (Just "reduce") Nothing 
     "Reduce output graph to attractor cycles." 
+ , Arg "generate" (Just 'g') (Just "generate") Nothing
+    "Generate an image"
  , Arg "open" (Just 'x') (Just "open") Nothing 
     "Open generated image automatically"
  , Arg "n1" Nothing (Just "n1") 
@@ -47,6 +49,7 @@ main = do
         n1 = getRequiredArg args "n1"
         n2 = getRequiredArg args "n2"
         mode = getRequiredArg args "mode"
+        gen = gotArg args "generate"
     if (length (["s","p"]\\[mode]) == 2)
         then error $ usageError args "Choose a mode: s-state, p-pathway."
         else return ()
@@ -64,12 +67,12 @@ main = do
         mapM_ (printf "%7s") (M.keys p)
         putStrLn ""
         genPrintSSA $ genSSA finalGraph
-        drawStateGraph finalGraph args
+        when gen $ drawStateGraph finalGraph args
         return ()
 
     when (mode == "p") $ do
         let finalGraph = mkSimple $ buildGeneGraph p
-        drawGeneGraph finalGraph args
+        when gen $ drawGeneGraph finalGraph args
         return ()
 
 drawGeneGraph gr args = do
@@ -88,8 +91,8 @@ drawStateGraph gr args = do
         outDot = (dropExtension outImg) ++ ".dot"
     writeFile outDot 
         (graphvizWithNodeFormatter cus gr "fgl" (5,5) (1,1) Portrait)
-    rawSystem "dot" ["-Tsvg","-o",outImg,outDot]
+    rawSystem "neato" ["-Tsvg","-o",outImg,outDot]
     when (gotArg args "open") $ do
         rawSystem "xdg-open" [outImg]
         return ()
-    removeFile outDot
+    --removeFile outDot
