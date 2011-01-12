@@ -19,7 +19,7 @@ rip-0,0->ikk
 lps-1,1->ikk
 lps-0,0->ikk
 
-a20&&tnf-1,0->rip
+a20&&tnf-1,0->rip #Test comment
 a20-1,0->rip
 tnf-1,1->rip
 tnf-0,0->rip

@@ -21,30 +21,47 @@ parsePass :: Parser (Maybe a) -> Parser [a]
 parsePass fn =  liftM catMaybes $ sepEndBy line (char '\n')
                 where line = try fn <|> ((skipMany (noneOf "\n")) >> return Nothing)
 
+ss = skipMany space
+tillEnd = skipMany (noneOf "\n")
+
 deps :: Parser (Maybe (Gene,[Gene]))
 deps = do
+        ss
         g <- many1 alphaNum
+        ss
         char '('
+        ss
         deps <- sepBy (many1 alphaNum) (char ',')
+        ss
         char ')'
+        tillEnd
         return $ Just (g,deps)
 
 paths :: Parser (Maybe Pathway)
 paths = do
-        gpre <- sepBy1 (many1 (noneOf "#&-\n")) (string "&&")
+        let ampSep = try (ss >> string "&&" >> ss)
+            geneID = (many1 $ noneOf "#-& \n") <?> "GeneID"
+        gpre <- sepBy1 geneID ampSep
+        ss
         char '-'
         pre <- digit
         char ','
         post <- digit
         string "->"
-        gpost <- sepBy1 (many1 alphaNum) (string "&&")
+        ss
+        gpost <- sepBy1 geneID ampSep
+        tillEnd
         let i2b x = if x == '0' then False else True
         return $ Just (Pathway gpre (i2b pre) (i2b post) gpost)
 
 knocks = do
+        ss
         gene <- many1 alphaNum
+        ss
         char '='
+        ss
         kstate <- digit
+        tillEnd
         let kbool = if kstate == '0' then False else True
         return $ Just (gene,kbool)
 
