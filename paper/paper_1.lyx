@@ -3,6 +3,9 @@
 \begin_document
 \begin_header
 \textclass article
+\begin_preamble
+\newcommand{\nfkb}{NF-$\kappa$B }
+\end_preamble
 \use_default_options true
 \language english
 \inputencoding auto
@@ -19,7 +22,7 @@
 \paperfontsize default
 \spacing single
 \use_hyperref false
-\papersize default
+\papersize letterpaper
 \use_geometry false
 \use_amsmath 1
 \use_esint 1
@@ -43,7 +46,19 @@
 \begin_body
 
 \begin_layout Title
-NfkB: The Model
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+nfkb
+\end_layout
+
+\end_inset
+
+: The Model
 \end_layout
 
 \begin_layout Author
@@ -55,18 +70,33 @@ Introduction
 \end_layout
 
 \begin_layout Standard
-Much work has been done on inference methods to create gene regulatory networks
- from time-course microarray data in a systematic and large scale manner.
- Unfortunately, these large networks are inherently difficult to validate,
- and these techniques will require more research in the future before they
- can be used for drug discovery.
+Much work has been done on algorithms to infer gene regulatory networks
+ from time-course microarray data in a systematic manner.
+ Unfortunately, these large networks are inherently NF-
+\begin_inset Formula $\kappa$
+\end_inset
+
+B difficult to validate, and thus cannot reliably be used for drug discovery.
  
 \end_layout
 
 \begin_layout Standard
-Before the advent of high throughput measurement techniques, biological
- experimentation centered on uncovering relationships between genes in the
- production of pathway knowledge.
+Before the advent of high 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+nfkb
+\end_layout
+
+\end_inset
+
+ throughput measurement techniques, biological experimentation centered
+ on uncovering relationships between genes in the production of pathway
+ knowledge.
  These pathways are tested with the rigor of human attention and the peer
  review process.
  While not all pathways in the literature are accurate, we believe they
@@ -76,11 +106,36 @@ Before the advent of high throughput measurement techniques, biological
 
 \begin_layout Standard
 In this paper, we show how this process can be applied to the set of genes
- that compose the NfKb regulatory network to build a class of boolean regulatory
- networks that agree with the literature.
- The Nfkb system was chosen due to the prevalence of pathway information
- in the literature as well as its biological importance in cancer and the
- innate immune system.
+ that compose the 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+nfkb
+\end_layout
+
+\end_inset
+
+ regulatory network to build a class of boolean regulatory networks that
+ agree with the literature.
+ The 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+nfkb
+\end_layout
+
+\end_inset
+
+ system was chosen due to the prevalence of pathway information in the literatur
+e as well as its biological importance in cancer and the innate immune system.
  
 \end_layout
 
