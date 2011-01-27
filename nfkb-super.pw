@@ -10,14 +10,13 @@ ikb (ikkb,p65)
 
 a20 (p65)
 tnf ()
-tnfr (tnf,irf3)
+tnfr (tnf,lps)
 ap1 (tnfr)
 lps ()
 rip (tnfr)
-irf3 (lps)
-ikkb (nemo)
+ikkb (nemo,lps)
 
-nemo(rip,a20,lps,ltbr)
+nemo(rip,a20,ltbr)
 
 ltbr ()
 p52  (ikka,ikkb)
@@ -27,12 +26,9 @@ ikka (nemo,ltbr)
 rip             -1,1-> nemo
 a20             -1,0-> nemo
 a20 && rip      -1,0-> nemo
-# 1
-lps && a20      -1,1-> nemo
-lps             -1,1-> nemo
 # #2 p.350 (schmidt-supprian 2000, solt 2007)
 ltbr            -1,1-> nemo
-rip && lps && ltbr -0,0-> nemo
+rip && ltbr     -0,0-> nemo
 
 # 1
 tnfr        -1,1-> ap1
@@ -42,10 +38,10 @@ tnfr        -0,0-> ap1
 tnfr        -1,1-> rip
 tnfr        -0,0-> rip
 
-# 3
-lps         -1,1-> irf3
-lps         -0,0-> irf3
-irf3        -1,1-> tnfr
+# kawai1999unresponsiveness
+lps         -1,1-> tnfr 
+tnf         -1,1-> tnfr
+lps && tnf  -0,0-> tnfr
 
 # 1
 ikka        -1,1-> p52
@@ -56,14 +52,11 @@ ltbr        -1,1-> ikka
 nemo        -1,1-> ikka
 nemo && ltbr-0,0-> ikka
 
-# 4
-tnf         -1,1-> tnfr
-irf3        -1,1-> tnfr
-irf3 && tnf -0,0-> tnfr
-
 #9
 nemo        -1,1-> ikkb
-nemo        -0,0-> ikkb
+# schmidt2000nemo
+lps         -1,1-> ikkb
+lps && nemo -0,0-> ikkb
 
 #1 and #3
 p65         -1,1-> ikb && a20
@@ -101,15 +94,15 @@ ikka        -1,0-> p65
 # (only through p52 though as p65 remained similar) increased 
 # when "ikka=0". This follows from Li PNAS 2005 (5)
 #
+# (6 -> Li 1999b) "ikkb=0" leads to lower p65 (higher p52, but meh)
+# which is indicative of higher apoptosis which is seen in hepatocytes
+# under tnf stimulation
+#
 # (7) Also, nfkb decreases while ap-1 increases
 # when "rip=0" is added which follows the result in 6 from 7, but 
 # I need to make sure that 8 backs up the fact that increased ap1
 # and decreased nfkb would result in an increase of apoptosis (what 
 # was actually seen in 7)
-#
-# (6 -> Li 1999b) "ikkb=0" leads to lower p65 (higher p52, but meh)
-# which is indicative of higher apoptosis which is seen in hepatocytes
-# under tnf stimulation
 #
 # (6 -> Beg 1995b, Beg and Baltimore 1996, Prendes 2003, Senftleben 2001)
 # "p65=0" Shows again high ap1 but lower p65 which causes more apoptosis

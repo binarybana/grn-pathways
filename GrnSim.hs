@@ -91,7 +91,8 @@ drawStateGraph gr args = do
         outDot = (dropExtension outImg) ++ ".dot"
     writeFile outDot 
         (graphvizWithNodeFormatter cus gr "fgl" (5,5) (1,1) Portrait)
-    rawSystem "neato" ["-Tsvg","-o",outImg,outDot]
+    --rawSystem "neato" ["-Tsvg","-o",outImg,outDot]
+    rawSystem "dot" ["-Tsvg","-o",outImg,outDot]
     when (gotArg args "open") $ do
         rawSystem "xdg-open" [outImg]
         return ()

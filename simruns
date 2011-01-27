@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+
+import subprocess, shlex
+
+call = r"./GrnSim -r -m s nfkb-super.pw +RTS -A100M -RTS -e "
+
+print(call)
+print("********************")
+
+def exp(params):
+    print(params)
+    if params[0]=='*':
+        return
+    subprocess.call(shlex.split(call+'"'+params+'"'))
+
+runs = [    "tnf=1 lps=0 ltbr=0",
+            "tnf=1 lps=0 ltbr=0 a20=0",
+            "tnf=1 lps=0 ltbr=0 ikka=0",
+            "tnf=1 lps=0 ltbr=0 ikkb=0",
+            "tnf=1 lps=0 ltbr=0 rip=0",
+            "tnf=1 lps=0 ltbr=0 p65=0",
+            "*******************************",
+            "tnf=0 lps=1 ltbr=0",
+            "tnf=0 lps=1 ltbr=0 ikkb=0"]
+
+for run in runs:
+    exp(run)

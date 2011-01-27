@@ -190,7 +190,7 @@ cus (NodeInfo name prob) = "[label=\""++name++
     "\",style=\"filled\",fillcolor=\"0.0 0.0 "++
     shade++"\""++",penwidth=\""++color++"\"]"
                 where   shade = show $ 1 - (clamp.gammaCorr) prob
-                        color = if name !! 4 == '1' then "1.0" else "1.0"
+                        color = "1.0"
                         gammaCorr x = x**0.4
                         clamp x = if x>1 then 1 else if x<0 then 0 else x
 
