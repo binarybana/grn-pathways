@@ -30,6 +30,7 @@ a20 && rip      -1,0-> nemo
 # 1
 lps && a20      -1,1-> nemo
 lps             -1,1-> nemo
+# #2 p.350 (schmidt-supprian 2000, solt 2007)
 ltbr            -1,1-> nemo
 rip && lps && ltbr -0,0-> nemo
 
