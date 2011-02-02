@@ -1,0 +1,21 @@
+atm(dna,wip1)
+p53(atm,mdm2)
+wip1(p53)
+mdm2(p53,atm)
+dna()
+
+dna -1,1-> atm
+dna -0,0-> atm
+wip1-1,0-> atm
+
+p53 -1,1-> wip1
+p53 -0,0-> wip1
+
+p53 -1,1-> mdm2
+atm -1,0-> mdm2
+wip1-1,1-> mdm2
+p53 && atm && wip1 -0,0-> mdm2
+
+mdm2-1,0-> p53
+atm -1,1-> p53
+atm -0,0-> p53

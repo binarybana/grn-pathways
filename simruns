@@ -15,13 +15,15 @@ def exp(params):
 
 runs = [    "tnf=1 lps=0 ltbr=0",
             "tnf=1 lps=0 ltbr=0 a20=0",
-            "tnf=1 lps=0 ltbr=0 ikka=0",
             "tnf=1 lps=0 ltbr=0 ikkb=0",
+            "tnf=1 lps=0 ltbr=0 ikkb=0 tnfr=0",
             "tnf=1 lps=0 ltbr=0 rip=0",
             "tnf=1 lps=0 ltbr=0 p65=0",
             "*******************************",
             "tnf=0 lps=1 ltbr=0",
-            "tnf=0 lps=1 ltbr=0 ikkb=0"]
+            "tnf=0 lps=1 ltbr=0 nemo=0",
+            "tnf=0 lps=1 ltbr=0 ikkb=0",
+            "tnf=0 lps=1 ltbr=0 ikka=0"]
 
 for run in runs:
     exp(run)

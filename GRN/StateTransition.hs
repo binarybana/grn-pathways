@@ -173,7 +173,7 @@ buildGeneGraph pdata = mkGraph lnodes edges
             filt name = if head name == '!' then tail name else name
             n2N name = case lookup (filt name) name2NodeMap of
                 Just x -> x
-                Nothing -> error "no node mapping for this gene"
+                Nothing -> error (name ++ " gene: no node mapping for this gene")
             name2NodeMap = zip (M.keys pdata) [1..] 
             allUpStream = concatMap (\(Pathway xs _ _ _)->xs) . pathways
 
