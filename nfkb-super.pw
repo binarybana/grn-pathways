@@ -19,7 +19,7 @@ ikkb (nemo,lps)
 nemo(rip,a20,ltbr)
 
 ltbr ()
-p52  (ikka,ikkb)
+p52  (ikka)
 ikka (nemo,ltbr)
 ######################
 # 9 & #2 p.348?

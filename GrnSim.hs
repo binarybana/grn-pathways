@@ -84,7 +84,7 @@ drawGeneGraph gr args = do
     when (gotArg args "open") $ do
         rawSystem "xdg-open" [outImg]
         return ()
-    removeFile outDot
+    --removeFile outDot
 
 drawStateGraph gr args = do
     let outImg = getRequiredArg args "output"
