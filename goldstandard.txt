@@ -1,0 +1,33 @@
+    a20    ap1    ikb   ikka   ikkb    lps   ltbr   nemo    p52    p65    rip    tnf   tnfr
+  0.389  1.000  0.487  0.611  0.611  0.000  0.000  0.611  0.611  0.389  1.000  1.000  1.000
+    a20    ap1    ikb   ikka   ikkb    lps   ltbr   nemo    p52    p65    rip    tnf   tnfr
+  0.000  1.000  0.200  1.000  1.000  0.000  0.000  1.000  1.000  0.400  1.000  1.000  1.000
+    a20    ap1    ikb   ikka   ikkb    lps   ltbr   nemo    p52    p65    rip    tnf   tnfr
+  0.000  1.000  1.000  1.000  0.000  0.000  0.000  1.000  1.000  0.000  1.000  1.000  1.000
+    a20    ap1    ikb   ikka   ikkb    lps   ltbr   nemo    p52    p65    rip    tnf   tnfr
+  0.000  0.000  1.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  1.000  0.000
+    a20    ap1    ikb   ikka   ikkb    lps   ltbr   nemo    p52    p65    rip    tnf   tnfr
+  0.000  1.000  1.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  0.000  1.000  1.000
+    a20    ap1    ikb   ikka   ikkb    lps   ltbr   nemo    p52    p65    rip    tnf   tnfr
+  0.000  1.000  0.000  1.000  1.000  0.000  0.000  1.000  1.000  0.000  1.000  1.000  1.000
+    a20    ap1    ikb   ikka   ikkb    lps   ltbr   nemo    p52    p65    rip    tnf   tnfr
+  0.600  1.000  0.300  0.400  1.000  1.000  0.000  0.400  0.400  0.600  1.000  0.000  1.000
+    a20    ap1    ikb   ikka   ikkb    lps   ltbr   nemo    p52    p65    rip    tnf   tnfr
+  0.667  1.000  0.333  0.000  1.000  1.000  0.000  0.000  0.000  0.667  1.000  0.000  1.000
+    a20    ap1    ikb   ikka   ikkb    lps   ltbr   nemo    p52    p65    rip    tnf   tnfr
+  0.000  1.000  1.000  1.000  0.000  1.000  0.000  1.000  1.000  0.000  1.000  0.000  1.000
+    a20    ap1    ikb   ikka   ikkb    lps   ltbr   nemo    p52    p65    rip    tnf   tnfr
+  0.667  1.000  0.333  0.000  1.000  1.000  0.000  0.333  0.000  0.667  1.000  0.000  1.000
+./grnsim -r -m sm nfkb-super.pw +RTS -A100M -RTS -e 
+********************
+tnf=1 lps=0 ltbr=0
+tnf=1 lps=0 ltbr=0 a20=0
+tnf=1 lps=0 ltbr=0 ikkb=0
+tnf=1 lps=0 ltbr=0 ikkb=0 tnfr=0
+tnf=1 lps=0 ltbr=0 rip=0
+tnf=1 lps=0 ltbr=0 p65=0
+*******************************
+tnf=0 lps=1 ltbr=0
+tnf=0 lps=1 ltbr=0 nemo=0
+tnf=0 lps=1 ltbr=0 ikkb=0
+tnf=0 lps=1 ltbr=0 ikka=0
