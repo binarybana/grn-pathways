@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import subprocess, shlex
+import shlex
+from subprocess import Popen, PIPE
 
 call = r"./grnsim -r -m sm nfkb-super.pw +RTS -A100M -RTS -e "
 
@@ -8,10 +9,12 @@ print(call)
 print("********************")
 
 def exp(params):
-    print(params)
     if params[0]=='*':
         return
-    subprocess.call(shlex.split(call+'"'+params+'"'))
+    # call(shlex.split(call+'"'+params+'"'))
+    p = Popen(shlex.split(call+'"'+params+'"'), stdout=PIPE, stderr=PIPE)
+    p.params = params
+    return p
 
 runs = [    "tnf=1 lps=0 ltbr=0",
             "tnf=1 lps=0 ltbr=0 a20=0",
@@ -25,5 +28,15 @@ runs = [    "tnf=1 lps=0 ltbr=0",
             "tnf=0 lps=1 ltbr=0 ikkb=0",
             "tnf=0 lps=1 ltbr=0 ikka=0"]
 
+res = []
+
 for run in runs:
-    exp(run)
+    temp = exp(run)
+    if type(temp) == Popen:
+        res.append(temp)
+
+for r in res:
+    stdout,stderr = r.communicate()
+    print r.params
+    print stdout,
+    
