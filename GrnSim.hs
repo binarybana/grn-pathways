@@ -38,7 +38,10 @@ argList =
     "Default second elimination pass amount"
  , Arg "mode" (Just 'm') (Just "mode")
     (argDataDefaulted "MODE" ArgtypeString "s")
-    "s:state transition graph, p:pathway diagram."
+    "s:state transition graph, p:pathway diagram, sm:modified stg."
+ , Arg "prog" (Just 'p') (Just "prog")
+    (argDataDefaulted "PROG" ArgtypeString "dot")
+    "Graphviz Draw Program to generate output"
  , Arg "input" Nothing Nothing
     (argDataRequired "FILE" ArgtypeString) "Input File."
  ]
@@ -50,11 +53,12 @@ main = do
         n2 = getRequiredArg args "n2"
         mode = getRequiredArg args "mode"
         gen = gotArg args "generate"
-    if (length (["s","p"]\\[mode]) == 2)
-        then error $ usageError args "Choose a mode: s-state, p-pathway."
+    if (length (["s","p","sm"]\\[mode]) == 3)
+        then error $ usageError args "Choose a mode: s-state, p-pathway, sm-state modified."
         else return ()
     con <- readFile inFile 
-    let p = parsePW $ con ++ (unlines.words $ getRequiredArg args "extra")
+    let start = parsePW $ con ++ (unlines.words $ "tnf=0 ltbr=0 lps=0")
+        p = parsePW $ con ++ (unlines.words $ getRequiredArg args "extra")
 
     when (mode == "s") $ do
         let initg = (initProbs.buildStateTGraph) p
@@ -70,6 +74,23 @@ main = do
         when gen $ drawStateGraph finalGraph args
         return ()
 
+    when (mode == "sm") $ do
+        let initg = (initProbs.buildStateTGraph) start
+            reduceGraph = gotArg args "reduce"
+            interGraph = (pass n2 fullIteration).
+                    (pass n1 (stripTransNodes.fullIteration)) $ initg
+            secondg = convertProbs interGraph (buildStateTGraph p)
+            finalGraph = if reduceGraph 
+                then (pass n2 fullIteration).
+                    (pass n1 (stripTransNodes.fullIteration)) $ secondg
+                else pass (n1+n2) fullIteration secondg
+            pass n f = last.take n.iterate f 
+        mapM_ (printf "%7s") (M.keys p)
+        putStrLn ""
+        genPrintSSA $ genSSA finalGraph
+        when gen $ drawStateGraph finalGraph args
+        return ()
+
     when (mode == "p") $ do
         let finalGraph = mkSimple $ buildGeneGraph p
         when gen $ drawGeneGraph finalGraph args
@@ -77,10 +98,11 @@ main = do
 
 drawGeneGraph gr args = do
     let outImg = getRequiredArg args "output"
+        prog   = getRequiredArg args "prog"
         outDot = (dropExtension outImg) ++ ".dot"
     writeFile outDot
         (GRN.Graphviz.graphviz gr "fgl" (5,5) (1,1) Portrait)
-    rawSystem "dot" ["-Tsvg","-o",outImg,outDot]
+    rawSystem prog ["-Tsvg","-o",outImg,outDot]
     when (gotArg args "open") $ do
         rawSystem "xdg-open" [outImg]
         return ()
@@ -88,11 +110,12 @@ drawGeneGraph gr args = do
 
 drawStateGraph gr args = do
     let outImg = getRequiredArg args "output"
+        prog   = getRequiredArg args "prog"
         outDot = (dropExtension outImg) ++ ".dot"
     writeFile outDot 
         (graphvizWithNodeFormatter cus gr "fgl" (5,5) (1,1) Portrait)
     --rawSystem "neato" ["-Tsvg","-o",outImg,outDot]
-    rawSystem "dot" ["-Tsvg","-o",outImg,outDot]
+    rawSystem prog ["-Tsvg","-o",outImg,outDot]
     when (gotArg args "open") $ do
         rawSystem "xdg-open" [outImg]
         return ()

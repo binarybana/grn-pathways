@@ -54,6 +54,7 @@ paths = do
         let i2b x = if x == '0' then False else True
         return $ Just (Pathway gpre (i2b pre) (i2b post) gpost)
 
+knocks :: Parser (Maybe (Gene,Bool))
 knocks = do
         ss
         gene <- many1 alphaNum
@@ -65,6 +66,13 @@ knocks = do
         let kbool = if kstate == '0' then False else True
         return $ Just (gene,kbool)
 
+validLine :: Parser (Maybe ())
+validLine = do
+            ss
+            alphaNum <|> char '!'
+            tillEnd
+            return $ Just ()
+
 addKnock (gene, kbool) initMap = M.adjust (\x -> x{knockout=Just kbool}) gene initMap
 
 addPath (Pathway _ _  _  []) initMap =  initMap
@@ -73,13 +81,18 @@ addPath (Pathway a b1 b2 (p:ps)) initMap = addPath (Pathway a b1 b2 ps) postMap
                 pw = Pathway a b1 b2 [p]
 
 
-parsePW input = foldr addKnock pathMap knockList
+parsePW input = if not allUsed
+                    then error "Syntax error in your pathway file."
+                    else foldr addKnock pathMap knockList
         where   pathMap = foldr addPath initMap pathList
                 initMap = M.fromList $ map create depsList
                 create (g,d) = (g, GeneInfo g Nothing d [])
                 knockList = execute knocks "Knockouts"
                 depsList = execute deps "Dependencies"
                 pathList = execute paths "Pathways" 
+                validList = execute validLine "Valids"
+                allUsed = length validList == length pathList
+                           + length depsList + length knockList
                 execute fn passname = case parse (parsePass fn) passname input of
                             Left err -> error ("Parsing error: " ++ (show err))
                             Right ret -> ret

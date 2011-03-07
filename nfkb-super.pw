@@ -5,7 +5,7 @@
 #lps=0
 #ltbr=1
 
-p65 (ikb)
+p65 (ikb,ikka)
 ikb (ikkb,p65)
 
 a20 (p65)

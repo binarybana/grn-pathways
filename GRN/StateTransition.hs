@@ -63,12 +63,24 @@ iterateProbs !sgraph = {-# SCC "iterate1" #-} gmap flowProbs sgraph
                 outdegree = let c = context sgraph node
                     in fromIntegral $ toInteger $ outdeg' c
 
+-- Take sgraph and initialize the probabilities on each node to be uniformly
+-- distributed 
 initProbs :: StateTGraph -> ColoredStateTGraph
 initProbs sgraph = gmap initProb (emap (\x->0) sgraph) 
     where   
         initProb (adj1, node, a, adj2) = 
             (adj1, node, NodeInfo a (1.0/num), adj2)
         num = fromIntegral $ toInteger $ length $ nodes sgraph
+
+-- Take probabilities from oldg, and apply them to newg to allow for a change
+-- in external conditions or something like that.
+convertProbs :: ColoredStateTGraph -> StateTGraph -> ColoredStateTGraph
+convertProbs oldg blankg = gmap copyProb (emap (\x->0) blankg)
+    where
+        copyProb (adj1, node, a, adj2) = (adj1, node, NodeInfo a p, adj2)
+            where p = case (lab oldg node) of
+                    Just (NodeInfo _ p) -> p 
+                    Nothing -> 0.0
 
 buildStateTGraph :: ParseData -> StateTGraph
 buildStateTGraph pdata = mkGraph permedNodeStates edges 
@@ -90,54 +102,54 @@ buildStateTGraph pdata = mkGraph permedNodeStates edges
                     build num = thisgene : build (num-1)
                         where thisgene = calcGene st num pdata
 
-calcGene :: [Int] -> Int -> ParseData -> ([Int] -> [[Int]])
 -- Given a state, and the gene number of interest, return a function
+calcGene :: [Int] -> Int -> ParseData -> ([Int] -> [[Int]])
 calcGene st prog pdata
     | hasKnockout = thisKnockout 
     | length thisDeps == 0 = thisCurr
     | otherwise = transInfo
-    where   names = M.keys pdata
-            hasKnockout = isJust $ knockout thisGI
-            thisKnockout = case (fromMaybe False (knockout thisGI)) of
-                False -> det0
-                True  -> det1
-            thisDeps = depends thisGI
-            thisGI = getGI thisName
-            thisPways = pathways thisGI
-            thisName = names !! (prog-1)
-            getInd n = let (Just ind) = elemIndex n names in ind
-            getGI name = let (Just gi) = M.lookup name pdata in gi
-            curr name = case (st !! (getInd name)) of
-                0 -> det0
-                1 -> det1
-            thisCurr = curr thisName 
-
-            transInfo 
-                | null list     = rand
-                | all (not) list = det0
-                | all (id) list      = det1 
-                | otherwise     = rand
-                where   list = map snd . filter ((==maxlen).fst) $ tuplist
-                        maxlen = maximum . map fst $ tuplist
-                        tuplist = foldr searchPWs [] thisPways
-                        searchPWs pw@(Pathway pres b1 b2 _) inlist
-                            | and pwlist = (length pwlist,b2):inlist
-                            | otherwise = inlist
-                            where pwlist = searchPWs' pw
-                        searchPWs' (Pathway [] b1 b2 _) = []
-                        searchPWs' (Pathway (x:xs) b1 b2 _) 
-                            | head x == '!' && opposite = go
-                            | head x /= '!' && regular = go
-                            | otherwise = stop
-                            where 
-                                query = st !! (getInd (x \\ "!"))
-                                opposite = b1 == (0==query)
-                                regular = b1 == (1==query)
-                                stop = [True,False]-- This pathway doesn't apply
-                                go = True : searchPWs' (Pathway xs b1 b2 [])
-            rand xs = [xs++[0],xs++[1]]
-            det0 xs = [xs++[0]]
-            det1 xs = [xs++[1]]
+    where   
+        names = M.keys pdata
+        hasKnockout = isJust $ knockout thisGI
+        thisKnockout = case (fromMaybe False (knockout thisGI)) of
+            False -> det0
+            True  -> det1
+        thisDeps = depends thisGI
+        thisGI = getGI thisName
+        thisPways = pathways thisGI
+        thisName = names !! (prog-1)
+        getInd n = let (Just ind) = elemIndex n names in ind
+        getGI name = let (Just gi) = M.lookup name pdata in gi
+        curr name = case (st !! (getInd name)) of
+            0 -> det0
+            1 -> det1
+        thisCurr = curr thisName 
+        rand xs = [xs++[0],xs++[1]]
+        det0 xs = [xs++[0]]
+        det1 xs = [xs++[1]]
+        transInfo 
+            | null list     = rand
+            | all (not) list = det0
+            | all (id) list      = det1 
+            | otherwise     = rand
+            where   list = map snd . filter ((==maxlen).fst) $ tuplist
+                    maxlen = maximum . map fst $ tuplist
+                    tuplist = foldr searchPWs [] thisPways
+                    searchPWs pw@(Pathway pres b1 b2 _) inlist
+                        | and pwlist = (length pwlist,b2):inlist
+                        | otherwise = inlist
+                        where pwlist = searchPWs' pw
+                    searchPWs' (Pathway [] b1 b2 _) = []
+                    searchPWs' (Pathway (x:xs) b1 b2 _) 
+                        | head x == '!' && opposite = go
+                        | head x /= '!' && regular = go
+                        | otherwise = stop
+                        where 
+                            query = st !! (getInd (x \\ "!"))
+                            opposite = b1 == (0==query)
+                            regular = b1 == (1==query)
+                            stop = [True,False]-- This pathway doesn't apply
+                            go = True : searchPWs' (Pathway xs b1 b2 [])
 
 buildBiGeneGraph :: ParseData -> StateTGraph
 buildBiGeneGraph pdata = 

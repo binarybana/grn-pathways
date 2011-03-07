@@ -2,7 +2,7 @@
 
 import subprocess, shlex
 
-call = r"./GrnSim -r -m s nfkb-super.pw +RTS -A100M -RTS -e "
+call = r"./grnsim -r -m sm nfkb-super.pw +RTS -A100M -RTS -e "
 
 print(call)
 print("********************")
