@@ -3,7 +3,7 @@
 import shlex
 from subprocess import Popen, PIPE
 
-call = r"./grnsim -r -m sm nfkb-super.pw +RTS -A100M -RTS -e "
+call = r"./grnsim -r -m s nfkb-super.pw +RTS -A100M -RTS -e "
 
 print(call)
 print("********************")
@@ -38,5 +38,6 @@ for run in runs:
 for r in res:
     stdout,stderr = r.communicate()
     print r.params
+    #print stderr
     print stdout,
     
