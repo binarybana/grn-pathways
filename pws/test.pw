@@ -1,0 +1,5 @@
+a(b,d)
+b(c,a)
+c(b,d)
+d(b,c)
+e(b,c)
