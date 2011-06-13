@@ -22,11 +22,11 @@ digraph fgl {
 	5 -> 3 [arrowhead="tee",color="#DF4B43"]
 	6 -> 5 [label = ""]
 	6 -> 13 [label = ""]
-	7 -> 8 [label = ""]
+	7 -> 8 [style="dashed", label = ""]
 	7 -> 4 [label = ""]
 	8 -> 5 [label = ""]
 	8 -> 4 [label = ""]
-	10 -> 3 [arrowhead="tee",color="#DF4B43"]
+	10 -> 3
 	10 -> 1 [label = ""]
 	11 -> 8 [label = ""]
 	12 -> 13 [label = ""]
