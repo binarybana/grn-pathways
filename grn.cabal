@@ -12,3 +12,5 @@ Executable GrnSim
   Main-is:	        GrnSim.hs
   Build-Depends:    base >= 4,fgl,parsec3,graphviz,containers,process,
                     regex-posix,directory,filepath,parseargs,Graphalyze
+  ghc-options:
+        -rtsopts
