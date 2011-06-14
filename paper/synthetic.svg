@@ -25,16 +25,16 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.98994949"
-     inkscape:cx="656.29153"
+     inkscape:cx="392.37512"
      inkscape:cy="335.72979"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
      inkscape:snap-grids="true"
-     inkscape:window-width="1600"
-     inkscape:window-height="823"
-     inkscape:window-x="0"
-     inkscape:window-y="24"
+     inkscape:window-width="1024"
+     inkscape:window-height="1251"
+     inkscape:window-x="1600"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:snap-to-guides="true"
      showguides="false" />
@@ -690,18 +690,6 @@
            inkscape:connector-curvature="0" />
       </g>
     </g>
-    <text
-       sodipodi:linespacing="125%"
-       id="text3995"
-       y="1011.3538"
-       x="182.26035"
-       style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
-       xml:space="preserve"><tspan
-         style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Sans;-inkscape-font-specification:Sans"
-         y="1011.3538"
-         x="182.26035"
-         id="tspan3997"
-         sodipodi:role="line">G</tspan></text>
     <g
        transform="matrix(0.98200035,0,0,-0.98200035,364.56222,278.39404)"
        inkscape:label="synthetic2"
@@ -940,181 +928,6 @@
            style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none"
            d="m 326.82,79.695 -9.769,4.094 10.191,2.891 -0.422,-6.985 z"
            inkscape:connector-curvature="0" />
-      </g>
-    </g>
-    <g
-       transform="matrix(1.25,0,0,1.25,239.55357,980.30861)"
-       class="graph"
-       id="graph1">
-      <title
-         id="title3299">fgl</title>
-      <polygon
-         id="polygon3301"
-         points="-4,5 -4,-116 183,-116 183,5 -4,5 "
-         style="fill:#ffffff;stroke:#ffffff" />
-      <!-- 0 -->
-      <g
-         class="node"
-         id="node1">
-        <title
-           id="title3304">0</title>
-        <ellipse
-           id="ellipse3306"
-           ry="18.3848"
-           rx="31.1127"
-           cy="-93"
-           cx="31"
-           sodipodi:cx="31"
-           sodipodi:cy="-93"
-           sodipodi:rx="31.1127"
-           sodipodi:ry="18.3848"
-           style="fill:#ffffff;stroke:#000000"
-           d="m 62.1127,-93 c 0,10.153645 -13.929631,18.3848 -31.1127,18.3848 -17.183069,0 -31.11269951,-8.231155 -31.11269951,-18.3848 0,-10.15364 13.92963051,-18.3848 31.11269951,-18.3848 17.183069,0 31.1127,8.23116 31.1127,18.3848 z" />
-        <text
-           id="text3308"
-           font-size="14.00"
-           y="-89.400002"
-           x="31"
-           style="font-size:14px;text-anchor:middle;font-family:'Times Roman,serif'">000</text>
-      </g>
-      <!-- 1 -->
-      <g
-         class="node"
-         id="node2">
-        <title
-           id="title3311">1</title>
-        <ellipse
-           id="ellipse3313"
-           ry="18.3848"
-           rx="31.1127"
-           cy="-19"
-           cx="31"
-           sodipodi:cx="31"
-           sodipodi:cy="-19"
-           sodipodi:rx="31.1127"
-           sodipodi:ry="18.3848"
-           style="fill:#707070;stroke:#000000"
-           d="M 62.1127,-19 C 62.1127,-8.8463554 48.183069,-0.61520004 31,-0.61520004 13.816931,-0.61520004 -0.11269951,-8.8463554 -0.11269951,-19 -0.11269951,-29.153645 13.816931,-37.3848 31,-37.3848 c 17.183069,0 31.1127,8.231155 31.1127,18.3848 z" />
-        <text
-           id="text3315"
-           font-size="14.00"
-           y="-15.4"
-           x="31"
-           style="font-size:14px;text-anchor:middle;font-family:'Times Roman,serif'">001</text>
-      </g>
-      <!-- 0&#45;&gt;1 -->
-      <g
-         class="edge"
-         id="edge2">
-        <title
-           id="title3318">0-&gt;1</title>
-        <path
-           id="path3320"
-           d="m 31,-74.3267 c 0,8.0628 0,17.679 0,26.6152"
-           inkscape:connector-curvature="0"
-           style="fill:none;stroke:#000000" />
-        <polygon
-           id="polygon3322"
-           points="31,-37.6674 27.5001,-47.6674 34.5001,-47.6673 34.5001,-47.6673 "
-           style="fill:#000000;stroke:#000000" />
-      </g>
-      <!-- 1&#45;&gt;1 -->
-      <g
-         class="edge"
-         id="edge4">
-        <title
-           id="title3325">1-&gt;1</title>
-        <path
-           id="path3327"
-           d="M 53.4273,-31.9528 C 67.0796,-34.9524 80,-30.6348 80,-19 c 0,8.6352 -7.1171,13.23974 -16.3683,13.8137"
-           inkscape:connector-curvature="0"
-           style="fill:none;stroke:#000000" />
-        <polygon
-           id="polygon3329"
-           points="53.4273,-6.04723 63.6862,-8.69405 63.0977,-1.71883 63.0977,-1.71883 "
-           style="fill:#000000;stroke:#000000" />
-      </g>
-      <!-- 4 -->
-      <g
-         class="node"
-         id="node3">
-        <title
-           id="title3332">4</title>
-        <ellipse
-           id="ellipse3334"
-           ry="18.3848"
-           rx="31.1127"
-           cy="-93"
-           cx="129"
-           sodipodi:cx="129"
-           sodipodi:cy="-93"
-           sodipodi:rx="31.1127"
-           sodipodi:ry="18.3848"
-           style="fill:#ffffff;stroke:#000000"
-           d="m 160.1127,-93 c 0,10.153645 -13.92963,18.3848 -31.1127,18.3848 -17.18307,0 -31.1127,-8.231155 -31.1127,-18.3848 0,-10.15364 13.92963,-18.3848 31.1127,-18.3848 17.18307,0 31.1127,8.23116 31.1127,18.3848 z" />
-        <text
-           id="text3336"
-           font-size="14.00"
-           y="-89.400002"
-           x="129"
-           style="font-size:14px;text-anchor:middle;font-family:'Times Roman,serif'">100</text>
-      </g>
-      <!-- 5 -->
-      <g
-         class="node"
-         id="node4">
-        <title
-           id="title3339">5</title>
-        <ellipse
-           id="ellipse3341"
-           ry="18.3848"
-           rx="31.1127"
-           cy="-19"
-           cx="129"
-           sodipodi:cx="129"
-           sodipodi:cy="-19"
-           sodipodi:rx="31.1127"
-           sodipodi:ry="18.3848"
-           style="fill:#707070;stroke:#000000"
-           d="m 160.1127,-19 c 0,10.1536446 -13.92963,18.38479996 -31.1127,18.38479996 -17.18307,0 -31.1127,-8.23115536 -31.1127,-18.38479996 0,-10.153645 13.92963,-18.3848 31.1127,-18.3848 17.18307,0 31.1127,8.231155 31.1127,18.3848 z" />
-        <text
-           id="text3343"
-           font-size="14.00"
-           y="-15.4"
-           x="129"
-           style="font-size:14px;text-anchor:middle;font-family:'Times Roman,serif'">101</text>
-      </g>
-      <!-- 4&#45;&gt;5 -->
-      <g
-         class="edge"
-         id="edge6">
-        <title
-           id="title3346">4-&gt;5</title>
-        <path
-           id="path3348"
-           d="m 129,-74.3267 c 0,8.0628 0,17.679 0,26.6152"
-           inkscape:connector-curvature="0"
-           style="fill:none;stroke:#000000" />
-        <polygon
-           id="polygon3350"
-           points="129,-37.6674 125.5,-47.6674 132.5,-47.6673 132.5,-47.6673 "
-           style="fill:#000000;stroke:#000000" />
-      </g>
-      <!-- 5&#45;&gt;5 -->
-      <g
-         class="edge"
-         id="edge8">
-        <title
-           id="title3353">5-&gt;5</title>
-        <path
-           id="path3355"
-           d="M 151.427,-31.9528 C 165.08,-34.9524 178,-30.6348 178,-19 c 0,8.6352 -7.117,13.23974 -16.368,13.8137"
-           inkscape:connector-curvature="0"
-           style="fill:none;stroke:#000000" />
-        <polygon
-           id="polygon3357"
-           points="151.427,-6.04723 161.686,-8.69405 161.098,-1.71883 161.098,-1.71883 "
-           style="fill:#000000;stroke:#000000" />
       </g>
     </g>
     <g
