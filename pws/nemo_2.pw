@@ -1,0 +1,13 @@
+# Comment
+a20()
+ltbr()
+rip()
+
+snemo(rip,a20,ltbr)
+
+a20             -1,0-> snemo
+ltbr            -1,1-> snemo
+rip             -1,1-> snemo
+a20 && rip      -1,0-> snemo
+rip&&ltbr       -0,0-> snemo
+a20&&ltbr&&!rip -0,0-> snemo
