@@ -136,7 +136,7 @@ kmapToStateGraph pdata kset = mkGraph permedNodeStates edges
         genEdges st = map (\(val,to)-> (from,bin2dec to,EdgeInfo 0.0 val)) tos
             where   
                 from = bin2dec st
-                tos = [(1.0,[])] >>= foldr (<=<) return (stateKmapLus st genes kset)
+                tos = [(1.0,[])] >>= foldr (>=>) return (stateKmapLus st genes kset)
         
 stateKmapLus :: [Int] -> [Gene] -> KmapSet -> [(Double,[Int]) -> [(Double,[Int])]]
 stateKmapLus st genes ks = map (evaluator.stateKmapLu st genes) $ M.elems ks 
