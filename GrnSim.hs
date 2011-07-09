@@ -61,7 +61,7 @@ main = do
         p = parsePW $ con ++ (unlines.words $ getRequiredArg args "extra")
 
     when (mode == "s") $ do
-        let initg = (initProbs.buildStateTGraph) p
+        let initg = kmapToStateGraph p.buildKmaps $ p
             reduceGraph = gotArg args "reduce"
             finalGraph = if reduceGraph 
                 then (pass n2 fullIteration).
@@ -75,11 +75,11 @@ main = do
         return ()
 
     when (mode == "sm") $ do
-        let initg = (initProbs.buildStateTGraph) start
+        let initg = kmapToStateGraph p.buildKmaps $ p
             reduceGraph = gotArg args "reduce"
             interGraph = (pass n2 fullIteration).
                     (pass n1 (stripTransNodes.fullIteration)) $ initg
-            secondg = convertProbs interGraph (buildStateTGraph p)
+            secondg = convertProbs interGraph (kmapToStateGraph p.buildKmaps $ p)
             finalGraph = if reduceGraph 
                 then (pass n2 fullIteration).
                     (pass n1 (stripTransNodes.fullIteration)) $ secondg

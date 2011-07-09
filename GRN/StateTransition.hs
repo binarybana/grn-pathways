@@ -19,12 +19,13 @@ import Data.Graph.Analysis
 
 data NodeInfo = NodeInfo String !Double
 data EdgeInfo = EdgeInfo Double Double
-type ColoredStateTGraph = Gr NodeInfo Double
+type ColoredStateGraph = Gr NodeInfo EdgeInfo
+type DirectedGraph = Gr String String
 
 type KmapSet = M.Map Gene Kmap 
-data Kmap = Kmap [Gene] (M.Map [Int] Kentry) 
+data Kmap = Kmap Gene [Gene] (M.Map [Int] Kentry) 
     deriving Show
-data Kentry = X | C Int | V Int Double 
+data Kentry = X | C Int | V Int Double | Const
     deriving Show 
 
 instance Show NodeInfo where
@@ -32,8 +33,6 @@ instance Show NodeInfo where
 instance Show EdgeInfo where
     show (EdgeInfo _ weight) = show weight
 
-type StateTGraph = Gr String String
-type StateColoredGraph = Gr NodeInfo EdgeInfo
 
 dec2bin :: Int -> Int -> [Int]
 dec2bin len y = (replicate (len-(length res)) 0) ++ res -- need to add padding
@@ -46,49 +45,36 @@ bin2dec st = foldl' (\a x->2*a+x) 0 st
 
 fullIteration = {-# SCC "fullIteration" #-} iterateProbs2.iterateProbs 
 
-iterateProbs2 :: ColoredStateTGraph -> ColoredStateTGraph
+iterateProbs2 :: ColoredStateGraph -> ColoredStateGraph
 iterateProbs2 !sgraph = {-# SCC "iterate2" #-} gmap flowProbs sgraph
     where 
-        flowProbs (adj1,node, !(NodeInfo a oldprob),adj2)=
+        flowProbs (adj1, node, !(NodeInfo a oldprob), adj2)=
             {-# SCC "flowProbs2" #-}(newIns, node, NodeInfo a newProb, newOuts)
             where   
                 newProb = {-# SCC "newProb" #-} 
-                    sum $ map (\(_,_,a)->a) (inn sgraph node)
-                newOuts = {-# SCC "newOuts" #-} map (\(_,w)->(0,w)) adj2
-                newIns = {-# SCC "newIns" #-} map (\(_,w)->(0,w)) adj1
+                    sum $ map (\(_,_,(EdgeInfo a _))->a) (inn sgraph node)
+                newOuts = {-# SCC "newOuts" #-} map (\((EdgeInfo _ w),e)->((EdgeInfo 0.0 w),e)) adj2
+                newIns = {-# SCC "newIns" #-} map (\((EdgeInfo _ w),e)->((EdgeInfo 0.0 w),e)) adj1
 
-iterateProbs :: ColoredStateTGraph -> ColoredStateTGraph
+iterateProbs :: ColoredStateGraph -> ColoredStateGraph
 iterateProbs !sgraph = {-# SCC "iterate1" #-} gmap flowProbs sgraph
     where   
         flowProbs  (adj1, node, !(NodeInfo a oldprob), adj2) =
             {-# SCC "flowProbs1" #-} (newIns, node, NodeInfo a 0, newOuts)  
             where   
                 newOuts = 
-                    {-# SCC "newOuts1" #-} map (\(_,w)->(newSplitProb,w)) adj2
+                    {-# SCC "newOuts1" #-} map (\((EdgeInfo _ w),n) ->((EdgeInfo (oldprob*w) w),n)) adj2
                 newIns = {-# SCC "newIns1" #-} map updateIns adj1
-                updateIns (l,n) = {-# SCC "updateIns1" #-}
-                    let c@(_,_,(NodeInfo _ p),_) = context sgraph n 
-                        num = fromIntegral $ toInteger $ outdeg' c         
-                        in (p/num,n)
-                newSplitProb = oldprob/outdegree
-                outdegree = let c = context sgraph node
-                    in fromIntegral $ toInteger $ outdeg' c
-
--- Take sgraph and initialize the probabilities on each node to be uniformly
--- distributed 
-initProbs :: StateTGraph -> ColoredStateTGraph
-initProbs sgraph = gmap initProb (emap (\x->0) sgraph) 
-    where   
-        initProb (adj1, node, a, adj2) = 
-            (adj1, node, NodeInfo a (1.0/num), adj2)
-        num = fromIntegral $ toInteger $ length $ nodes sgraph
+                updateIns ((EdgeInfo _ w),n) = {-# SCC "updateIns1" #-}
+                    let (_,_,(NodeInfo _ p),_) = context sgraph n 
+                        in ((EdgeInfo (p*w) w),n)
 
 -- Take probabilities from oldg, and apply them to newg to allow for a change
 -- in external conditions or something like that.
-convertProbs :: ColoredStateTGraph -> StateTGraph -> ColoredStateTGraph
-convertProbs oldg blankg = gmap copyProb (emap (\x->0) blankg)
+convertProbs :: ColoredStateGraph -> ColoredStateGraph -> ColoredStateGraph
+convertProbs oldg blankg = gmap copyProb (emap (\(EdgeInfo _ w)->(EdgeInfo 0.0 w)) blankg)
     where
-        copyProb (adj1, node, a, adj2) = (adj1, node, NodeInfo a p, adj2)
+        copyProb (adj1, node, NodeInfo a y, adj2) = (adj1, node, NodeInfo a p, adj2)
             where p = case (lab oldg node) of
                     Just (NodeInfo _ p) -> p 
                     Nothing -> 0.0
@@ -97,9 +83,9 @@ buildKmaps :: ParseData -> KmapSet
 buildKmaps = M.map buildKmap
 
 buildKmap :: GeneInfo -> Kmap
-buildKmap (GeneInfo _ (Just val) _ _) = Kmap [] (M.singleton [] (V 0 (valconv val)))
-buildKmap (GeneInfo _ _ [] []) = Kmap [] (M.singleton [] (V 0 0.5))
-buildKmap gi = Kmap predictors (foldl updateMap initMap spways)
+buildKmap (GeneInfo n (Just val) _ _) = Kmap n [] (M.singleton [] (V 0 (valconv val)))
+buildKmap (GeneInfo n _ [] []) = Kmap n [] (M.singleton [] Const)
+buildKmap gi = Kmap (name gi) predictors (foldl updateMap initMap spways)
     where
         -- Sorted Pathways by ascending number of predictors
         spways = sortBy (comparing (\(Pathway x _ _ _)->length x)) $ pathways gi
@@ -134,7 +120,7 @@ valconv :: Bool -> Double
 valconv val = if val then 1 else 0
 
 
-kmapToStateGraph :: ParseData -> KmapSet -> StateColoredGraph
+kmapToStateGraph :: ParseData -> KmapSet -> ColoredStateGraph
 kmapToStateGraph pdata kset = mkGraph permedNodeStates edges 
     where
         permedStates = map (dec2bin nGenes) intStates 
@@ -167,14 +153,16 @@ evaluator val
 
 
 stateKmapLu :: [Int] -> [Gene] -> Kmap -> Double
-stateKmapLu st genes (Kmap gs k) = case M.lookup loc k of
+stateKmapLu st genes (Kmap g gs k) = case M.lookup loc k of
     Just X -> 0.5
     Just (C _) -> 0.5
     Just (V _ d) -> d
+    Just Const -> fromIntegral $ st !! thisInd
     Nothing -> error ("Something wrong here " ++ show loc ++ show k ++ show inds ++ show gs ++ show genes)
     where
         loc = map (st!!) inds
         inds = concatMap (flip elemIndices genes) gs
+        Just thisInd = elemIndex g genes 
 
 test = do
     con <- readFile "pws/nfkb-super.pw"
@@ -182,74 +170,7 @@ test = do
         ks = buildKmaps pdata
     return ks
 
-buildStateTGraph :: ParseData -> StateTGraph
-buildStateTGraph pdata = mkGraph permedNodeStates edges 
-    where   permedStates = map (dec2bin nGenes) intStates
-            permedNodeStates = 
-                zip intStates (map (concatMap show) permedStates)
-            intStates = [0..(2^nGenes)-1]
-            nGenes = length (M.keys pdata)
-            edges = concatMap genEdges permedStates 
-            genEdges :: [Int] -> [(Int,Int,String)]
-            genEdges st = map (\to-> (from,bin2dec to,"")) tos
-                where   
-                    from = bin2dec st
-                    tos = [[]] >>= foldr (<=<) return (build $ length st)
-                    build :: Int -> [([Int]->[[Int]])]
-                    build 0 = [return.id]
-                    build num = thisgene : build (num-1)
-                        where thisgene = calcGene st num pdata
-
--- Given a state, and the gene number of interest, return a function
-calcGene :: [Int] -> Int -> ParseData -> ([Int] -> [[Int]])
-calcGene st prog pdata
-    | hasKnockout = thisKnockout 
-    | length thisDeps == 0 = thisCurr
-    | otherwise = transInfo
-    where   
-        names = M.keys pdata
-        hasKnockout = isJust $ knockout thisGI
-        thisKnockout = case (fromMaybe False (knockout thisGI)) of
-            False -> det0
-            True  -> det1
-        thisDeps = depends thisGI
-        thisGI = getGI thisName
-        thisPways = pathways thisGI
-        thisName = names !! (prog-1)
-        getInd n = let (Just ind) = elemIndex n names in ind
-        getGI name = let (Just gi) = M.lookup name pdata in gi
-        curr name = case (st !! (getInd name)) of
-            0 -> det0
-            1 -> det1
-        thisCurr = curr thisName 
-        rand xs = [xs++[0],xs++[1]]
-        det0 xs = [xs++[0]]
-        det1 xs = [xs++[1]]
-        transInfo 
-            | null list     = rand
-            | all (not) list = det0
-            | all (id) list      = det1 
-            | otherwise     = rand
-            where   list = map snd . filter ((==maxlen).fst) $ tuplist
-                    maxlen = maximum . map fst $ tuplist
-                    tuplist = foldr searchPWs [] thisPways
-                    searchPWs pw@(Pathway pres b1 b2 _) inlist
-                        | and pwlist = (length pwlist,b2):inlist
-                        | otherwise = inlist
-                        where pwlist = searchPWs' pw
-                    searchPWs' (Pathway [] b1 b2 _) = []
-                    searchPWs' (Pathway (x:xs) b1 b2 _) 
-                        | head x == '!' && opposite = go
-                        | head x /= '!' && regular = go
-                        | otherwise = stop
-                        where 
-                            query = st !! (getInd (x \\ "!"))
-                            opposite = b1 == (0==query)
-                            regular = b1 == (1==query)
-                            stop = [True,False]-- This pathway doesn't apply
-                            go = True : searchPWs' (Pathway xs b1 b2 [])
-
-buildBiGeneGraph :: ParseData -> StateTGraph
+buildBiGeneGraph :: ParseData -> DirectedGraph
 buildBiGeneGraph pdata = 
     mkGraph (map (\(a,b)->(b,a)) name2NodeMap) (edges ++ redges)
     where   
@@ -273,7 +194,7 @@ buildBiGeneGraph pdata =
             (repeat "red")
         ngenes = map ('n':) (M.keys pdata)
 
-buildGeneGraph :: ParseData -> StateTGraph
+buildGeneGraph :: ParseData -> DirectedGraph
 buildGeneGraph pdata = mkGraph lnodes edges
     where   nodes = zipWith (\a (b,c)->(a,b,c)) [1..] (M.assocs pdata)
             lnodes = map (\(a,b,c)->(a,b)) nodes
@@ -304,7 +225,7 @@ cus (NodeInfo name prob) = "[label=\""++name++
                         gammaCorr x = x**0.4
                         clamp x = if x>1 then 1 else if x<0 then 0 else x
 
-genSSA :: Gr NodeInfo Double -> [Double]
+genSSA :: ColoredStateGraph -> [Double]
 genSSA g = map (/denom) $ foldl1 (zipWith (+)) ssaList
     where
         denom = fromIntegral n
@@ -312,7 +233,7 @@ genSSA g = map (/denom) $ foldl1 (zipWith (+)) ssaList
         ssaList = map genSSA' glist
         glist = take n $ iterate fullIteration g
 
-genSSA' :: Graph gr => gr NodeInfo Double -> [Double]
+genSSA' :: ColoredStateGraph -> [Double]
 genSSA' g = foldr (zipWith (+)) (replicate len 0) filt2
     where   len = length $ name $ head filt1
             filt1 = map snd (labNodes g)
@@ -333,8 +254,9 @@ testFun = do
     
 testPure con = finalGraph
     where
-        start = parsePW $ con ++ (unlines.words $ "tnf=1 ltbr=0 lps=0") 
-        initg = (initProbs.buildStateTGraph) start
+        pdata = parsePW $ con ++ (unlines.words $ "tnf=1 ltbr=0 lps=0") 
+        ks = buildKmaps pdata
+        sg = kmapToStateGraph pdata ks
         finalGraph = (pass 100 fullIteration).
-                    (pass 20 (stripTransNodes.fullIteration)) $ initg
+                    (pass 20 (stripTransNodes.fullIteration)) $ sg
         pass n f = last.take n.iterate f 
