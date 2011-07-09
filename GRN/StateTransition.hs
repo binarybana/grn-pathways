@@ -10,6 +10,7 @@ import GRN.Parse
 import System.Cmd
 import Control.Monad
 import Data.List
+import Data.Ord (comparing)
 import Data.Maybe
 import qualified Data.Map as M
 import Text.Printf
@@ -17,15 +18,25 @@ import System.Environment
 import Data.Graph.Analysis
 
 data NodeInfo = NodeInfo String !Double
+data EdgeInfo = EdgeInfo Double Double
 type ColoredStateTGraph = Gr NodeInfo Double
+
+type KmapSet = M.Map Gene Kmap 
+data Kmap = Kmap [Gene] (M.Map [Int] Kentry) 
+    deriving Show
+data Kentry = X | C Int | V Int Double 
+    deriving Show 
 
 instance Show NodeInfo where
     show (NodeInfo name num) = name ++ "\t" ++ (show num) ++ "\t"
+instance Show EdgeInfo where
+    show (EdgeInfo _ weight) = show weight
 
 type StateTGraph = Gr String String
+type StateColoredGraph = Gr NodeInfo EdgeInfo
 
 dec2bin :: Int -> Int -> [Int]
-dec2bin y len = (replicate (len-(length res)) 0) ++ res -- need to add padding
+dec2bin len y = (replicate (len-(length res)) 0) ++ res -- need to add padding
     where   res = reverse $ dec2bin' y
             dec2bin' 0 = []
             dec2bin' y = let (a,b) = quotRem y 2
@@ -82,15 +93,102 @@ convertProbs oldg blankg = gmap copyProb (emap (\x->0) blankg)
                     Just (NodeInfo _ p) -> p 
                     Nothing -> 0.0
 
+buildKmaps :: ParseData -> KmapSet
+buildKmaps = M.map buildKmap
+
+buildKmap :: GeneInfo -> Kmap
+buildKmap (GeneInfo _ (Just val) _ _) = Kmap [] (M.singleton [] (V 0 (valconv val)))
+buildKmap (GeneInfo _ _ [] []) = Kmap [] (M.singleton [] (V 0 0.5))
+buildKmap gi = Kmap predictors (foldl updateMap initMap spways)
+    where
+        -- Sorted Pathways by ascending number of predictors
+        spways = sortBy (comparing (\(Pathway x _ _ _)->length x)) $ pathways gi
+        -- Sorted list of predictors
+        predictors = sort.nub.concatMap (\(Pathway x _ _ _)->x) $ pathways gi
+        nump = length predictors
+        positions :: [[Int]]
+        positions = [[0],[1]] >>= foldr (<=<) return (replicate (nump-1) (\x->[x++[0],x++[1]]))
+        initMap = M.fromList $ zip positions (repeat X)
+        updateMap :: M.Map [Int] Kentry -> Pathway -> M.Map [Int] Kentry 
+        updateMap k (Pathway up pre post _) = foldl (\k pos-> updateLoc k pos (valconv post) (length up)) k upposses 
+            where upposses = foldl (filterPoses pre) positions up
+        updateLoc :: M.Map [Int] Kentry  -> [Int] -> Double -> Int -> M.Map [Int] Kentry 
+        updateLoc k loc val num = M.insert loc (updateRule (k M.! loc) (V num val) num) k
+        updateRule X val num = val
+        updateRule (C i) val num 
+            | i < num = val
+            | i == num = C i
+            | otherwise = error "Should never reach another pathway with less than the conflict"
+        updateRule (V i d) val@(V ni nd) num
+            | i < num = val
+            | i == num = if d == nd then V i d else C i
+            | otherwise = error "Should never reach this pathway 2"
+        filterPoses :: Bool -> [[Int]] -> Gene -> [[Int]]
+        filterPoses val xs gene
+            | head gene == '!' = filterPoses (not val) xs gene
+            | otherwise = filter ((==(if val then 1 else 0)).(!!ind)) xs
+                where Just ind = elemIndex gene predictors
+
+-- Boolean to Double
+valconv :: Bool -> Double
+valconv val = if val then 1 else 0
+
+
+kmapToStateGraph :: ParseData -> KmapSet -> StateColoredGraph
+kmapToStateGraph pdata kset = mkGraph permedNodeStates edges 
+    where
+        permedStates = map (dec2bin nGenes) intStates 
+        permedNodeStates = 
+            zip intStates (map (\x->NodeInfo x (1.0/(fromIntegral nStates))) stringStates)
+        stringStates = map (concatMap show) permedStates
+        nStates = 2^nGenes 
+        intStates = [0..nStates-1]
+        nGenes = length genes
+        genes = M.keys pdata
+        edges = concatMap genEdges permedStates 
+        genEdges :: [Int] -> [(Int,Int,EdgeInfo)]
+        genEdges st = map (\(val,to)-> (from,bin2dec to,EdgeInfo 0.0 val)) tos
+            where   
+                from = bin2dec st
+                tos = [(1.0,[])] >>= foldr (<=<) return (stateKmapLus st genes kset)
+        
+stateKmapLus :: [Int] -> [Gene] -> KmapSet -> [(Double,[Int]) -> [(Double,[Int])]]
+stateKmapLus st genes ks = map (evaluator.stateKmapLu st genes) $ M.elems ks 
+
+evaluator :: Double -> ((Double,[Int]) -> [(Double,[Int])])
+evaluator val 
+    | val == 1.0 = det1
+    | val == 0.0 = det0
+    | otherwise = rand
+    where rand (d,xs) = [(d*ival,xs++[0]),(d*val,xs++[1])]
+          det0 (d,xs) = [(d,xs++[0])]
+          det1 (d,xs) = [(d,xs++[1])]
+          ival = 1.0 - val
+
+
+stateKmapLu :: [Int] -> [Gene] -> Kmap -> Double
+stateKmapLu st genes (Kmap gs k) = case M.lookup loc k of
+    Just X -> 0.5
+    Just (C _) -> 0.5
+    Just (V _ d) -> d
+    Nothing -> error ("Something wrong here " ++ show loc ++ show k ++ show inds ++ show gs ++ show genes)
+    where
+        loc = map (st!!) inds
+        inds = concatMap (flip elemIndices genes) gs
+
+test = do
+    con <- readFile "pws/nfkb-super.pw"
+    let pdata = parsePW con
+        ks = buildKmaps pdata
+    return ks
+
 buildStateTGraph :: ParseData -> StateTGraph
 buildStateTGraph pdata = mkGraph permedNodeStates edges 
-    where   permedStates = map (flip dec2bin nGenes) intStates
+    where   permedStates = map (dec2bin nGenes) intStates
             permedNodeStates = 
                 zip intStates (map (concatMap show) permedStates)
             intStates = [0..(2^nGenes)-1]
             nGenes = length (M.keys pdata)
-            indexNames = zip [1..] (M.keys pdata)
-
             edges = concatMap genEdges permedStates 
             genEdges :: [Int] -> [(Int,Int,String)]
             genEdges st = map (\to-> (from,bin2dec to,"")) tos
@@ -229,3 +327,14 @@ genPrintSSA vec = do
     mapM_ (printf "%7.3f") vec
     putStrLn ""
 
+testFun = do
+    con <- readFile "./pws/nfkb-super.pw"
+    return $ testPure con
+    
+testPure con = finalGraph
+    where
+        start = parsePW $ con ++ (unlines.words $ "tnf=1 ltbr=0 lps=0") 
+        initg = (initProbs.buildStateTGraph) start
+        finalGraph = (pass 100 fullIteration).
+                    (pass 20 (stripTransNodes.fullIteration)) $ initg
+        pass n f = last.take n.iterate f 

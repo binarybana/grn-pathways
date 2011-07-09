@@ -97,7 +97,6 @@ parsePW input = if not allUsed
                             Left err -> error ("Parsing error: " ++ (show err))
                             Right ret -> ret
 
-fileNamePW :: String -> IO()
 fileNamePW filename = do
         con <- readFile filename
-        print $ parsePW con
+        return $ parsePW con
