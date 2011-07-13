@@ -1,17 +1,29 @@
-Name:                grn
-Version:             0.1
-Description:         GRN inference from Pathways
-License:             GPL
-License-file:        LICENSE
-Author:              Jason Knight
-Maintainer:          binarybana@gmail.com
-Build-Type:          Simple
-Cabal-Version:	     >=1.2
+Name:               grn
+Version:            0.1
+Synopsis:           GRN inference from Pathways
+Description:
+  This program will convert a set of pathways written in a precise manner into 
+  a discrete time, discrete space Markov chain, simulate its long run 
+  probabilities, and transform those into an indication of how long each 
+  protein is active for.
+  .
+  See the Paper "A Stochastic NF-kB Model Consistent with Pathway Information" 
+  by Knight et al. for more information.
+License:            BSD3
+License-file:       LICENSE
+Author:             Jason Knight <jason@jasonknight.us>
+Maintainer:         Jason Knight <jason@jasonknight.us>
+Build-Type:         Simple
+Copyright:          2010, 2011 Jason Knight
+Category:           Bioinformatics, Scientific Simulation, Simulation
+Cabal-Version:	    >=1.6
+Homepage:           http://www.jasonknight.us/software
 
 Executable GrnSim
   Main-is:	        GrnSim.hs
   Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
-                    regex-posix,directory,filepath,parseargs,Graphalyze
+                    regex-posix,directory,filepath,parseargs,Graphalyze,
+                    random,statistics,gnuplot,vector
   ghc-options:
         -rtsopts
-        -O3
+        -O3 -funbox-strict-fields

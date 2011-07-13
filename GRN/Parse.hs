@@ -1,21 +1,25 @@
+-- |
+-- Module    : GRN.Parse
+-- Copyright : (c) 2011 Jason Knight
+-- License   : BSD3
+--
+-- Maintainer  : jason@jasonknight.us
+-- Stability   : experimental
+-- Portability : portable
+-- 
+-- Parses a pathway file *.pw to produce the ParseData construction that can
+-- then be processed further. See the example pathway files in pws folder 
+-- for an example of the syntax.
+--
 module GRN.Parse where
 
+import GRN.Types
 import Text.Parsec
 import Text.Parsec.String
 import Control.Monad
 import Data.Maybe
 import qualified Data.Map as M
 
-type Gene = String
-data Pathway = Pathway [Gene] Bool Bool [Gene] deriving (Show)
-
-data GeneInfo = GeneInfo {
-                    name        :: Gene,
-                    knockout    :: Maybe Bool,
-                    depends     :: [Gene],
-                    pathways    :: [Pathway] } deriving (Show)
-
-type ParseData = M.Map Gene GeneInfo
 
 parsePass :: Parser (Maybe a) -> Parser [a]
 parsePass fn =  liftM catMaybes $ sepEndBy line (char '\n')

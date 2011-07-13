@@ -1,11 +1,23 @@
 {-# LANGUAGE BangPatterns #-}
+-- |
+-- Module    : GRN.StateTransition
+-- Copyright : (c) 2011 Jason Knight
+-- License   : BSD3
+--
+-- Maintainer  : jason@jasonknight.us
+-- Stability   : experimental
+-- Portability : portable
+-- 
+-- Handles the creation of a Karnaugh map or species pathway diagram from
+-- ParseData. Also handles the simulation of the long run probabilities and
+-- calcuation of the SSA Transform
+--
 
 module GRN.StateTransition where
 
 import Data.Graph.Inductive
-import Data.Graph.Inductive.Graph
-import qualified GRN.Graphviz as Gv
 import GRN.Parse
+import GRN.Types
 
 import System.Cmd
 import Control.Monad
@@ -16,23 +28,8 @@ import qualified Data.Map as M
 import Text.Printf
 import System.Environment
 import Data.Graph.Analysis
-
-data NodeInfo = NodeInfo String !Double
-data EdgeInfo = EdgeInfo Double Double
-type ColoredStateGraph = Gr NodeInfo EdgeInfo
-type DirectedGraph = Gr String String
-
-type KmapSet = M.Map Gene Kmap 
-data Kmap = Kmap Gene [Gene] (M.Map [Int] Kentry) 
-    deriving Show
-data Kentry = X | C Int | V Int Double | Const
-    deriving Show 
-
-instance Show NodeInfo where
-    show (NodeInfo name num) = name ++ "\t" ++ (show num) ++ "\t"
-instance Show EdgeInfo where
-    show (EdgeInfo _ weight) = show weight
-
+import System.Random
+import System.IO.Unsafe
 
 dec2bin :: Int -> Int -> [Int]
 dec2bin len y = (replicate (len-(length res)) 0) ++ res -- need to add padding
@@ -120,6 +117,22 @@ valconv :: Bool -> Double
 valconv val = if val then 1 else 0
 
 
+reDrawEdges :: ParseData -> KmapSet-> (Int, ColoredStateGraph) -> (Int, ColoredStateGraph)
+reDrawEdges pdata ks (x,orig) = if x>0 then (x+1,mkGraph permedNodeStates edges)
+                                else (x, mkGraph permedNodeStates edges)
+    where
+        permedStates = map ((dec2bin nGenes).fst) permedNodeStates
+        permedNodeStates = labNodes orig
+        nGenes = length genes
+        genes = M.keys pdata
+        edges = concatMap genEdges permedStates 
+        genEdges :: [Int] -> [(Int,Int,EdgeInfo)]
+        genEdges st = map (\(val,to)-> (from,bin2dec to,EdgeInfo 0.0 val)) tos
+            where   
+                from = bin2dec st
+                tos = [(1.0,[])] >>= foldr (>=>) return (stateKmapLus x st genes ks)
+
+
 kmapToStateGraph :: ParseData -> KmapSet -> ColoredStateGraph
 kmapToStateGraph pdata kset = mkGraph permedNodeStates edges 
     where
@@ -136,10 +149,10 @@ kmapToStateGraph pdata kset = mkGraph permedNodeStates edges
         genEdges st = map (\(val,to)-> (from,bin2dec to,EdgeInfo 0.0 val)) tos
             where   
                 from = bin2dec st
-                tos = [(1.0,[])] >>= foldr (>=>) return (stateKmapLus st genes kset)
+                tos = [(1.0,[])] >>= foldr (>=>) return (stateKmapLus 0 st genes kset)
         
-stateKmapLus :: [Int] -> [Gene] -> KmapSet -> [(Double,[Int]) -> [(Double,[Int])]]
-stateKmapLus st genes ks = map (evaluator.stateKmapLu st genes) $ M.elems ks 
+stateKmapLus :: Int -> [Int] -> [Gene] -> KmapSet -> [(Double,[Int]) -> [(Double,[Int])]]
+stateKmapLus x st genes ks = map (evaluator.stateKmapLu x st genes) $ M.elems ks 
 
 evaluator :: Double -> ((Double,[Int]) -> [(Double,[Int])])
 evaluator val 
@@ -151,11 +164,15 @@ evaluator val
           det1 (d,xs) = [(d,xs++[1])]
           ival = 1.0 - val
 
+rand x = unsafePerformIO $ do
+            setStdGen (mkStdGen x)
+            y <- randomRIO (0,1)
+            if x==0 then return 0.5 else return y
 
-stateKmapLu :: [Int] -> [Gene] -> Kmap -> Double
-stateKmapLu st genes (Kmap g gs k) = case M.lookup loc k of
-    Just X -> 0.5
-    Just (C _) -> 0.5
+stateKmapLu :: Int -> [Int] -> [Gene] -> Kmap -> Double
+stateKmapLu x st genes (Kmap g gs k) = case M.lookup loc k of
+    Just X -> rand x
+    Just (C _) -> rand x
     Just (V _ d) -> d
     Just Const -> fromIntegral $ st !! thisInd
     Nothing -> error ("Something wrong here " ++ show loc ++ show k ++ show inds ++ show gs ++ show genes)
@@ -216,14 +233,6 @@ stripTransNodes orig = foldr strip orig (nodes orig)
                 | otherwise = gr
             prob i = let Just (NodeInfo _ p) = i in p 
     
-
-cus (NodeInfo name prob) = "[label=\""++name++
-    "\",style=\"filled\",fillcolor=\"0.0 0.0 "++
-    shade++"\""++",penwidth=\""++color++"\"]"
-                where   shade = show $ 1 - (clamp.gammaCorr) prob
-                        color = "1.0"
-                        gammaCorr x = x**0.4
-                        clamp x = if x>1 then 1 else if x<0 then 0 else x
 
 genSSA :: ColoredStateGraph -> [Double]
 genSSA g = map (/denom) $ foldl1 (zipWith (+)) ssaList
