@@ -16,13 +16,24 @@ Installing
 ----------
 Assuming you have Haskell installed and the appropriate prerequisites:
 
-cabal configure
-cabal build
-./grnsim
+> cabal configure
+> cabal build
+> ./grnsim -m d -r -e "tnf=0 lps=1 ltbr=0" "pws/nfkb-super.pw" --n4 1
 
 Or run ./simruns (a short python script) and compare to gold.txt to make sure 
 everything is running alright (I know, its a poor man's way to test, but I've 
 got paper deadlines to worry about!).
+
+Future Work
+-----------
+I am currently in the process of devising a way to approach estimation and 
+control. In other words, the doctor takes your blood, and has the measurements 
+of a few protein species. Using these measurements we can calculate more 
+precisely what set of states your cells are likely in and then calculate the 
+optimal drug dosings.
+
+Be on the lookout for these changes and the first paper to be published 
+hopefully sooner than later.
 
 Problems
 --------
