@@ -15,6 +15,7 @@ module GRN.Types where
 
 import Data.Graph.Inductive
 import Data.Map (Map)
+import Data.Vector.Unboxed (Vector)
 
 type Gene = String
 data Pathway = Pathway [Gene] Bool Bool [Gene] deriving (Show)
@@ -27,12 +28,12 @@ data GeneInfo = GeneInfo {
 
 type ParseData = Map Gene GeneInfo
 
------------------------
-
 data NodeInfo = NodeInfo String !Double
 data EdgeInfo = EdgeInfo Double Double
 type ColoredStateGraph = Gr NodeInfo EdgeInfo
 type DirectedGraph = Gr String String
+
+type SSA = Vector Double
 
 type KmapSet = Map Gene Kmap 
 data Kmap = Kmap Gene [Gene] (Map [Int] Kentry) 

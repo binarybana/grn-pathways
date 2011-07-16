@@ -19,6 +19,10 @@ import Data.Graph.Inductive
 import GRN.Parse
 import GRN.Types
 
+import qualified Data.Vector as V
+import qualified Data.Vector.Generic as G
+import qualified Data.Vector.Unboxed as U
+
 import System.Cmd
 import Control.Monad
 import Data.List
@@ -27,6 +31,7 @@ import Data.Maybe
 import qualified Data.Map as M
 import Text.Printf
 import System.Environment
+import System.Console.ParseArgs
 import Data.Graph.Analysis
 import System.Random
 import System.IO.Unsafe
@@ -116,11 +121,10 @@ buildKmap gi = Kmap (name gi) predictors (foldl updateMap initMap spways)
 valconv :: Bool -> Double
 valconv val = if val then 1 else 0
 
-
 reDrawEdges :: ParseData -> KmapSet-> (Int, ColoredStateGraph) -> (Int, ColoredStateGraph)
-reDrawEdges pdata ks (x,orig) = if x>0 then (x+1,mkGraph permedNodeStates edges)
-                                else (x, mkGraph permedNodeStates edges)
+reDrawEdges pdata ks (x,orig) = (newX, mkGraph permedNodeStates edges)
     where
+        newX = if x>0 then x+1 else x -- 0 is the deterministic seed
         permedStates = map ((dec2bin nGenes).fst) permedNodeStates
         permedNodeStates = labNodes orig
         nGenes = length genes
@@ -164,15 +168,15 @@ evaluator val
           det1 (d,xs) = [(d,xs++[1])]
           ival = 1.0 - val
 
-rand x = unsafePerformIO $ do
+randUnsafe x = unsafePerformIO $ do
             setStdGen (mkStdGen x)
             y <- randomRIO (0,1)
             if x==0 then return 0.5 else return y
 
 stateKmapLu :: Int -> [Int] -> [Gene] -> Kmap -> Double
 stateKmapLu x st genes (Kmap g gs k) = case M.lookup loc k of
-    Just X -> rand x
-    Just (C _) -> rand x
+    Just X -> randUnsafe x
+    Just (C _) -> randUnsafe x
     Just (V _ d) -> d
     Just Const -> fromIntegral $ st !! thisInd
     Nothing -> error ("Something wrong here " ++ show loc ++ show k ++ show inds ++ show gs ++ show genes)
@@ -225,6 +229,18 @@ buildGeneGraph pdata = mkGraph lnodes edges
             name2NodeMap = zip (M.keys pdata) [1..] 
             allUpStream = concatMap (\(Pathway xs _ _ _)->xs) . pathways
 
+simulate :: Args String -> ColoredStateGraph -> ColoredStateGraph
+simulate args 
+    | gotArg args "reduce" = reduceSim
+    | otherwise = regSim
+      where 
+            n1 = getRequiredArg args "n1"
+            n2 = getRequiredArg args "n2"
+            reduceSim = (pass n2 fullIteration).
+                    (pass n1 (stripTransNodes.fullIteration)) 
+            regSim = pass (n1+n2) fullIteration
+            pass n f = last.take n.iterate f 
+
 stripTransNodes :: Graph gr => gr NodeInfo b -> gr NodeInfo b
 stripTransNodes orig = foldr strip orig (nodes orig)
     where   strip node gr
@@ -234,27 +250,26 @@ stripTransNodes orig = foldr strip orig (nodes orig)
             prob i = let Just (NodeInfo _ p) = i in p 
     
 
-genSSA :: ColoredStateGraph -> [Double]
-genSSA g = map (/denom) $ foldl1 (zipWith (+)) ssaList
+genSSA :: ColoredStateGraph -> SSA
+genSSA g = G.map (/denom) $ foldl1 (G.zipWith (+)) ssaList
     where
         denom = fromIntegral n
         n = 8
         ssaList = map genSSA' glist
         glist = take n $ iterate fullIteration g
 
-genSSA' :: ColoredStateGraph -> [Double]
-genSSA' g = foldr (zipWith (+)) (replicate len 0) filt2
-    where   len = length $ name $ head filt1
-            filt1 = map snd (labNodes g)
-            filt2 = map weight filt1 
-            weight (NodeInfo a pr) = map ((*pr).conv) a
+genSSA' :: ColoredStateGraph -> SSA
+genSSA' g = G.foldr (G.zipWith (+)) (U.replicate len 0) filt2
+    where   len = length $ name $ G.head filt1
+            filt1 = V.fromList $ map snd (labNodes g)
+            filt2 = G.map weight filt1 
+            weight (NodeInfo a pr) = U.fromList $ map ((*pr).conv) a
             conv = (\x->if x=='1' then 1 else 0) 
             name (NodeInfo a pr) = a
-            prob (NodeInfo a pr) = pr
 
-genPrintSSA :: [Double] -> IO()
-genPrintSSA vec = do
-    mapM_ (printf "%7.3f") vec
+printSSA :: SSA -> IO()
+printSSA vec = do
+    G.mapM_ (printf "%7.3f") vec
     putStrLn ""
 
 testFun = do
