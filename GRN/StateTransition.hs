@@ -258,6 +258,13 @@ genSSA g = G.map (/denom) $ foldl1 (G.zipWith (+)) ssaList
         ssaList = map genSSA' glist
         glist = take n $ iterate fullIteration g
 
+sumMass :: ColoredStateGraph -> Double
+sumMass g = sum $ map ((\(NodeInfo _ pr)->pr).snd) (labNodes g)
+
+normalizeGraph :: ColoredStateGraph -> (Double, ColoredStateGraph)
+normalizeGraph g = (tot, nmap (\(NodeInfo a pr)->(NodeInfo a (pr/tot))) g)
+    where tot = sumMass g
+
 genSSA' :: ColoredStateGraph -> SSA
 genSSA' g = G.foldr (G.zipWith (+)) (U.replicate len 0) filt2
     where   len = length $ name $ G.head filt1

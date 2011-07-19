@@ -27,6 +27,7 @@ import System.FilePath
 import System.Directory
 import Control.Monad
 
+
 -- data NodeInfo = NodeInfo String !Double
 -- data EdgeInfo = EdgeInfo Double Double
 -- type ColoredStateGraph = Gr NodeInfo EdgeInfo

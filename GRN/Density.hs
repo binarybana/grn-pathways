@@ -30,7 +30,11 @@ import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Generic as G
 
+import Control.Parallel.Strategies
+
 import Numeric.FFT.Vector.Unitary
+
+import Data.Graph.Analysis.Algorithms.Common (componentsOf)
 
 import Statistics.KernelDensity
 import Statistics.Sample
@@ -39,91 +43,83 @@ import Statistics.Distribution
 import Statistics.Distribution.Normal
 import Graphics.Gnuplot.Simple hiding (Points)
 
-simRuns :: Args String -> ParseData -> IO () --U.Vector SSA
-simRuns args p = do
-  let 
+
+
+step = 0.01 -- Step size
+nl = 101 -- Number of poitns
+smoothingVar = 0.001 -- Variance of smoothing gaussian
+
+points = U.enumFromStepN 0.00 step nl
+
+normSmooth mu = G.map (density $ normalDistr mu smoothingVar) points
+stdNorm = normSmooth 0.5
+
+myKernelEst :: V.Vector Double -> U.Vector Double
+myKernelEst sample = estimatePDF myKern (bandwidth gaussianBW sample) sample (Points points)
+
+myKern f h p v = exp (-0.5 * u * u) * g
+    where u = (v - p) / h
+          g = f * 0.5 * m_2_sqrt_pi * m_1_sqrt_2 
+
+
+myEst xv  | stdDev xv < 0.001 = normalize.normSmooth $ (G.sum xv / (fromIntegral.G.length $ xv))
+          | otherwise = normalize.clamp.convolve stdNorm.myKernelEst $ xv
+          
+normalize xv = let scale = 1.0 / (step * G.sum xv) in G.map (*scale) xv
+clamp xv = G.map (\x->if x<0 then 0 else x) xv
+
+
+-- Assume that both xs and ys are the same size
+convolve xs ys = G.slice start l uncentered
+  where
+    xsF = run dftR2C (xs G.++ zeros)
+    ysF = run dftR2C (ys G.++ zeros)
+    l = G.length xs
+    start = floor $ (fromIntegral l)/2
+    zeros = U.replicate l 0.0
+    mult = G.zipWith (*) xsF ysF
+    uncentered = run dftC2R mult
+
+
+
+calcSSAs :: Args String -> ParseData -> [V.Vector (V.Vector Double)]
+calcSSAs args p = map (simSSAs.snd.normalizeGraph) grComps
+  where
     gen = gotArg args "generate"
     ks = buildKmaps p 
-    gr = simulate args $ kmapToStateGraph p ks
+    grComps = componentsOf $ simulate args $ kmapToStateGraph p ks
     pass n f = last.take n.iterate f 
     n2 = getRequiredArg args "n2" -- Number of iterations per simulation
     n3 = getRequiredArg args "n3" -- Number of simruns
     n4 = getRequiredArg args "n4" -- Starting Seed
 
-    simVec = V.iterateN n3 ((\(x,g)->(x,(pass n2 fullIteration g))).(reDrawEdges p ks)) (n4,gr)
+    seedList :: ColoredStateGraph -> V.Vector (Int,ColoredStateGraph)
+    seedList gr = V.fromList $ zip [n4..(n4+n3)] (repeat gr)
 
-    ssaVec :: V.Vector SSA
-    ssaVec = G.map (genSSA.snd) simVec
+    simVec :: V.Vector (Int,ColoredStateGraph) -> V.Vector (Int,ColoredStateGraph)
+    simVec = G.map ((\(x,g)->(x,(pass n2 fullIteration g))).(reDrawEdges p ks)) 
 
-    allgenes :: V.Vector (V.Vector Double)
-    allgenes = G.map (\x-> G.map (G.!x) ssaVec) (V.fromList [0..(length $ M.keys p)-1])
+    ssaVec :: V.Vector (Int,ColoredStateGraph) -> V.Vector SSA
+    ssaVec = V.fromList . withStrategy (parList rpar) . G.toList . G.map (genSSA.snd)
 
-    allvars = G.map stdDev allgenes
+    allgenes ssas = G.map (\x-> G.map (G.!x) ssas) (V.fromList [0..(length $ M.keys p)-1])
 
-    step = 0.01 -- Step size
-    nl = 101 -- Number of poitns
-    smoothingVar = 0.01 -- Variance of smoothing gaussian
+    simSSAs = allgenes . ssaVec . simVec . seedList 
 
-    points = U.enumFromStepN 0.00 step nl
-    
-    normSmooth mu = G.map (density $ normalDistr mu smoothingVar) points
-    stdNorm = normSmooth 0.5
+calcEsts :: V.Vector (V.Vector Double) -> V.Vector (U.Vector Double)
+calcEsts = G.map myEst
 
-    myKernelEst :: V.Vector Double -> U.Vector Double
-    myKernelEst sample = estimatePDF myKern (bandwidth gaussianBW sample) sample (Points points)
-
-    myKern f h p v = exp (-0.5 * u * u) * g
-        where u = (v - p) / h
-              g = f * 0.5 * m_2_sqrt_pi * m_1_sqrt_2 
-
-    allests :: V.Vector (U.Vector Double)
-    allests = G.map myEst allgenes
-
-    myEst xv  | stdDev xv < 0.001 = normalize.normSmooth $ (G.sum xv / (fromIntegral.G.length $ xv))
-              | otherwise = normalize.clamp.convolve stdNorm.myKernelEst $ xv
-              
-    normalize xv = let scale = 1.0 / (step * G.sum xv) in G.map (*scale) xv
-    clamp xv = G.map (\x->if x<0 then 0 else x) xv
-
+simRuns :: Args String -> ParseData -> IO () --U.Vector SSA
+simRuns args p = do
+  let
     titles = V.fromList $ map (\x->defaultStyle {lineSpec = CustomStyle [LineTitle x]} ) (M.keys p)
-
     titleAll = V.zip titles
-
-    -- Assume that both xs and ys are the same size
-    convolve xs ys = G.slice start l uncentered
-      where
-        xsF = run dftR2C (xs G.++ zeros)
-        ysF = run dftR2C (ys G.++ zeros)
-        l = G.length xs
-        start = floor $ (fromIntegral l)/2
-        zeros = U.replicate l 0.0
-        mult = G.zipWith (*) xsF ysF
-        uncentered = run dftC2R mult
-
+    
     prepForPlot = G.toList.titleAll.G.map (G.toList.G.zip points)
+    allgenes = calcSSAs args p
+    allests = map calcEsts allgenes
 
-  mapM_ (printf "%7s") (M.keys p)
-  putStrLn ""
-  G.mapM_ printSSA ssaVec
+  mapM_ (plotPathsStyle [XRange (0.0,1.0)] . prepForPlot) allests
 
-  putStrLn ""
-  putStrLn ""
-  putStrLn "Std Deviations:"
-
-  mapM_ (printf "%7s") (M.keys p)
-  putStrLn ""
-  G.mapM_ (printf "%7.4f") allvars
-
-  putStrLn ""
-  putStrLn ""
-  putStrLn "Integrations:"
-
-  mapM_ (printf "%7s") (M.keys p)
-  putStrLn ""
-  G.mapM_ (printf "%7.2f") (G.map ((*step).G.sum) allests)
-  putStrLn ""
-  
-  plotPathsStyle [XRange (0.0,1.0)] $ prepForPlot allests
-
-  when gen $ drawStateGraph (snd.G.last.G.take n3 $ simVec) args
+  --when gen $ drawStateGraph snd.G.head $ simVec) args
 
