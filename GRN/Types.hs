@@ -48,7 +48,6 @@ type ProbSet = [Attractor]
 
 -- An attractor contains the prior probability, the estimated densities for
 -- each gene, and the normalized, reduced state graph.
-type Attractor = (Double, ColoredStateGraph, AttractorDensity)
 
 type AttractorDensity = Map Gene (U.Vector Double)
 type GeneMC = Map Gene (U.Vector Double)
@@ -88,16 +87,18 @@ data CSC = CSC {
 data EMData = EMData {
       emAttractors :: Attractors
     , emUnfilledKMS :: KmapSet
-    --, emComps :: [ColoredStateGraph]
-    --, emCompNodes :: [U.Vector Int]
+    , emComps :: [ColoredStateGraph]
+    , emCompNodes :: Masks
+    , emNormSum :: Double
     , emArgs :: Args String
     , emMeasurements :: MeasureMap
     , emUncertainLocs :: [UncertainSpot] 
     } 
 
+type Masks = [U.Vector Int]
 type UncertainSpot = (Gene,[Int],Kentry)
 type SSAMap = Map Gene Double
 type MeasureMap = Map Gene Double
-type Attractors = [(Double, SSAMap, ColoredStateGraph)]
+type Attractors = [(Double, SSAMap)]
 type Theta = U.Vector Double
 
