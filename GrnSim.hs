@@ -54,12 +54,15 @@ argList =
     "Generate an image"
  , Arg "open" (Just 'x') (Just "open") Nothing 
     "Open generated image automatically"
+ , Arg "avg" Nothing (Just "avg") 
+    (argDataDefaulted "INT" ArgtypeInt 8)
+    "Averaging sums to perform"
  , Arg "n1" Nothing (Just "n1") 
     (argDataDefaulted "INT" ArgtypeInt 15)
-    "Default first elimination pass amount"
+    "First elimination (reduction) pass amount"
  , Arg "n2" Nothing (Just "n2")
     (argDataDefaulted "INT" ArgtypeInt 140)
-    "Default second elimination pass amount"
+    "Second pass (only simulation) amount"
  , Arg "n3" Nothing (Just "n3")
     (argDataDefaulted "INT" ArgtypeInt 140)
     "Runs for Density estimation ignored if m!=d"

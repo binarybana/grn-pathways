@@ -41,11 +41,6 @@ type DirectedGraph = Gr String String
 instance NFData SSA where
     rnf vec = seq vec ()
 
---instance (NFData a) => NFData (V.Vector a) where
---    rnf = rnf . V.toList
-
-type ProbSet = [Attractor]
-
 -- An attractor contains the prior probability, the estimated densities for
 -- each gene, and the normalized, reduced state graph.
 

@@ -27,10 +27,10 @@ Executable GrnSim
                     deepseq,vector-strategies >0.1,lbfgsb
   ghc-options:
         -rtsopts
-        -prof -auto-all
+        ---prof -auto-all
         ---eventlog
         ---ddump-simpl-stats
         -with-rtsopts=-A16M
-        ---O2 -funbox-strict-fields
+        -O -funbox-strict-fields
         -fno-spec-constr-count
         ---threaded

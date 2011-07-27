@@ -5,8 +5,8 @@
 #lps=0
 #ltbr=1
 
-tnfr=measured=0.8
-ikb=measured=0.1
+tnfr=measured=0.2
+ikb=measured=0.8
 
 p65 (ikb,ikka)
 ikb (ikkb,p65)

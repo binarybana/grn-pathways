@@ -69,11 +69,11 @@ normalizeSSD :: SSD -> (Double,SSA)
 normalizeSSD ssd = let fac=U.sum ssd in (fac, U.map (*(1/fac)) ssd)
 
 simulateCSC :: Args String -> CSC -> SSD -> SSD
-simulateCSC args csc start = norm $ regSim (n1+n2) start
+simulateCSC args csc start = regSim (n1+n2) start
       where 
-            n1 = getRequiredArg args "n1" :: Int
+            n1 = getRequiredArg args "n1" :: Int 
             n2 = getRequiredArg args "n2"
-            avg = getRequiredArg args "avg"
+            avg = getRequiredArg args "avg" :: Int
             --norm xv = let fac = (U.sum xv) in (fac,U.map (*(1/fac)) xv)
             regSim 0 v = v
             regSim n v = regSim (n-1) (multiplyCSCVM csc v)
