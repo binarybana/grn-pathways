@@ -160,15 +160,14 @@ emRun args p = do
   print n
   --plotFunc3d [] [] xs xs (\x y -> expectationRun emdat (U.fromList [x,0.5,y]))
   
-  --mapM_ (sequence.printList) [ag,ag2]
-  --print $ last $ emAttractors emdat
-  --putStrLn ""
+  mapM_ (sequence.printList) prVal2
+  putStrLn ""
 
-  putStrLn "Posterior Probs:"
-  mapM_ (sequence.printList.U.fromList.sort.U.toList) prVal
-  putStrLn ""
-  mapM_ (printf "%5.2f") (map U.sum prVal)
-  putStrLn ""
+  --putStrLn "Posterior Probs:"
+  --mapM_ (sequence.printList.U.fromList.sort.U.toList) prVal
+  --putStrLn ""
+  --mapM_ (printf "%5.2f") (map U.sum prVal)
+  --putStrLn ""
 
   --putStrLn ""
   --putStrLn ""
