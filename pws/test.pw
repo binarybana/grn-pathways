@@ -1,5 +1,14 @@
-a(b,d)
+a()
 b(c,a)
 c(b,d)
 d(b,c)
 e(b,c)
+
+a-1,1->b
+a-0,0->b
+
+c-1,1->b
+b-1,1->c
+
+c=measured=0.2
+b=measured=0.3

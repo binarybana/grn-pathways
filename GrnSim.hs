@@ -7,7 +7,7 @@
 -- Stability   : experimental
 -- Portability : portable
 -- 
--- See the help information by executing the generated executable with no 
+-- See the help information by executing the generated executable with no
 -- parameters.
 -- 
 
@@ -18,9 +18,12 @@ import GRN.StateTransition
 import GRN.Render
 import GRN.Types
 import GRN.Density
+import GRN.Sparse
+import GRN.EM
 
 import qualified Data.Map as M
 import Data.List
+import Data.Ord
 import Control.Monad
 import Text.Printf
 import System.Environment
@@ -66,7 +69,11 @@ argList =
     "outgoing edge probabilities.")
  , Arg "mode" (Just 'm') (Just "mode")
     (argDataDefaulted "MODE" ArgtypeString "s")
-    "s:state transition graph, p:pathway diagram, sm:modified stg, d:density estimation."
+    ("s:state transition graph, ss:state transition matrix, p:pathway diagram, "++
+    "sm:modified stg, d:density estimation, em:expectation maximization")
+ , Arg "dmode" Nothing (Just "dmode")
+    (argDataDefaulted "DMODE" ArgtypeString "m")
+    "m: Matrix multiplication, g: graph"
  , Arg "prog" (Just 'p') (Just "prog")
     (argDataDefaulted "PROG" ArgtypeString "dot")
     "Graphviz Draw Program to generate output"
@@ -81,7 +88,8 @@ main = do
         n2 = getRequiredArg args "n2" :: Int
         mode = getRequiredArg args "mode"
         gen = gotArg args "generate"
-    if (length (["s","p","sm","d"]\\[mode]) == 4)
+        modes = ["s","p","sm","d","ss","em"]
+    if (length (modes\\[mode]) == length mode)
         then error $ usageError args ("Choose a mode: s-state, p-pathway, "
             ++ "sm-state modified, d-density estimation.")
         else return ()
@@ -90,7 +98,7 @@ main = do
         p = parsePW $ con ++ (unlines.words $ getRequiredArg args "extra")
 
     when (mode == "s") $ do
-        let initg = kmapToStateGraph p.buildKmaps $ p
+        let initg = kmapToStateGraph.buildKmaps $ p
             finalGraph = simulate args initg
         mapM_ (printf "%7s") (M.keys p)
         putStrLn ""
@@ -98,13 +106,33 @@ main = do
         when gen $ drawStateGraph finalGraph args
         return ()
 
+    when (mode == "ss") $ do
+        let initm = (kmapToDOK.buildKmaps $ p)  0
+            finalSSD = simulateDOK args initm
+            (DOK (n,_) m) = initm
+        mapM_ (printf "%7s") (M.keys p)
+        putStrLn ""
+        --print $ maximum $ map (snd) $ M.keys m
+        --print $ G.length $ colIndices $ dokToCSC initm
+        --print $ G.length $ rowIndices $ dokToCSC initm
+        --print $ G.length $ cscValues $ dokToCSC initm
+        printSSA $ ssdToSSA finalSSD
+        --Cant draw a graph when we have a matrix... well we could, but we'd
+        --have to convert:
+        --when gen $ drawStateGraph finalGraph args
+        return ()
+
     when (mode == "d") $ do
         simRuns args p
         return ()
 
+    when (mode == "em") $ do
+        emRun args p
+        return ()
+
     when (mode == "sm") $ do
-        let initg = kmapToStateGraph p.buildKmaps $ start
-            secondg = convertProbs (simulate args initg) (kmapToStateGraph p.buildKmaps $ p)
+        let initg = kmapToStateGraph.buildKmaps $ start
+            secondg = convertProbsGG (simulate args initg) (kmapToStateGraph.buildKmaps $ p)
             finalGraph = simulate args secondg
         mapM_ (printf "%7s") (M.keys p)
         putStrLn ""

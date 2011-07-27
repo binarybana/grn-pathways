@@ -16,6 +16,10 @@ module GRN.Parse where
 import GRN.Types
 import Text.Parsec
 import Text.Parsec.String
+import Text.ParserCombinators.Parsec.Char
+import Text.Parsec.Token
+import Numeric
+import Control.Applicative ((<$),empty)
 import Control.Monad
 import Data.Maybe
 import qualified Data.Map as M
@@ -70,6 +74,23 @@ knocks = do
         let kbool = if kstate == '0' then False else True
         return $ Just (gene,kbool)
 
+measurements :: Parser (Maybe (Gene,Double))
+measurements = do
+        ss
+        gene <- many1 alphaNum
+        ss
+        string "=measured="
+        ss
+        measure <- p_float
+        tillEnd
+        return $ Just (gene,measure)
+
+p_float :: CharParser () Double
+p_float = do  s<- getInput
+              case readSigned readFloat s of
+                [(n,s')] -> n <$ setInput s'
+                _        -> empty
+
 validLine :: Parser (Maybe ())
 validLine = do
             ss
@@ -79,6 +100,8 @@ validLine = do
 
 addKnock (gene, kbool) initMap = M.adjust (\x -> x{knockout=Just kbool}) gene initMap
 
+addMeasure (gene, measure) initMap = M.adjust (\x -> x{measurement=Just measure}) gene initMap
+
 addPath (Pathway _ _  _  []) initMap =  initMap
 addPath (Pathway a b1 b2 (p:ps)) initMap = addPath (Pathway a b1 b2 ps) postMap 
         where   postMap = M.adjust (\x -> x{pathways=pw:(pathways x)}) p initMap
@@ -87,16 +110,18 @@ addPath (Pathway a b1 b2 (p:ps)) initMap = addPath (Pathway a b1 b2 ps) postMap
 
 parsePW input = if not allUsed
                     then error "Syntax error in your pathway file."
-                    else foldr addKnock pathMap knockList
-        where   pathMap = foldr addPath initMap pathList
+                    else foldr addMeasure knockMap measureList
+        where   knockMap = foldr addKnock pathMap knockList
+                pathMap = foldr addPath initMap pathList
                 initMap = M.fromList $ map create depsList
-                create (g,d) = (g, GeneInfo g Nothing d [])
+                create (g,d) = (g, GeneInfo g Nothing Nothing d [])
                 knockList = execute knocks "Knockouts"
+                measureList = execute measurements "Measurements"
                 depsList = execute deps "Dependencies"
                 pathList = execute paths "Pathways" 
                 validList = execute validLine "Valids"
                 allUsed = length validList == length pathList
-                           + length depsList + length knockList
+                           + length depsList + length knockList + length measureList
                 execute fn passname = case parse (parsePass fn) passname input of
                             Left err -> error ("Parsing error: " ++ (show err))
                             Right ret -> ret

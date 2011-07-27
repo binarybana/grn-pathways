@@ -3,7 +3,7 @@
 import shlex
 from subprocess import Popen, PIPE
 
-call = r"./grnsim -r -m s pws/nfkb-super.pw +RTS -H128M -RTS -e "
+call = r"./grnsim -m ss pws/nfkb-super.pw -e "
 
 print(call)
 print("********************")
