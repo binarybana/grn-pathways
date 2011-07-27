@@ -43,7 +43,7 @@ import Numeric.LBFGSB
 
 import Graphics.Gnuplot.Simple 
 
-smoothingVar = 0.1 -- Variance of smoothing gaussian
+smoothingVar = 0.2 -- Variance of smoothing gaussian
 
 ssaMap :: [Gene] -> SSA -> SSAMap
 ssaMap glist s = M.fromList $ zip glist (U.toList s)
@@ -155,13 +155,16 @@ emRun args p = do
     elOpt = optimize (expectationRun emdat) (U.replicate n 0.5) 
     ag = approxGrad (expectationRun emdat) (U.replicate n 0.5)
     ag2 = approxGrad2 (expectationRun emdat) (U.replicate n 0.5)
-    xs = [0,0.1..1]
+    xs = [0,0.02..1]
 
   print n
-  --plotFunc3d [] [] xs xs (\x y -> expectationRun emdat (U.fromList [x,0.5,y]))
+  plotFunc3d [] [] xs xs (\x y -> expectationRun emdat (U.fromList [x,y,0.5]))
   
-  mapM_ (sequence.printList) prVal2
+  putStrLn "Expectations:"
+  mapM_ (printf "%7.3f") prVal2
   putStrLn ""
+
+  print elOpt
 
   --putStrLn "Posterior Probs:"
   --mapM_ (sequence.printList.U.fromList.sort.U.toList) prVal
@@ -177,15 +180,25 @@ emRun args p = do
   --putStrLn "Expectations:"
   --mapM_ (printf "%7.3f\n") prVal2
   --putStrLn ""
-  --putStrLn "Optimal Posterior Prob:"
-  --mapM_ (sequence.printList) [posteriorProb emdat elOpt]
+  putStrLn ""
+  putStrLn ""
+  putStrLn "**** Optimal Posterior Probs ****"
+  mapM_ (sequence.printList) [posteriorProb emdat elOpt]
+  mapM_ (printf "%7.3d".(U.head)) stripNodes
+  putStrLn ""
+  putStrLn "*********************************"
   
-  --putStrLn ""
-  --printf "Optimal Expectation: %5.2f\n" (expectationRun emdat elOpt)
-  --putStrLn ""
-  --putStrLn "**** Optimal Theta ****"
-  --mapM_ (sequence.printList) [elOpt]
-  --
-  --putStrLn "***********************\n"
+  putStrLn ""
+  printf "Optimal Expectation: %5.2f\n" (expectationRun emdat elOpt)
+  putStrLn ""
+  putStrLn "**** Optimal Theta ****"
+  mapM_ (sequence.printList) [elOpt]
+  
+  putStrLn "***********************\n"
+  putStrLn "Uncertain Locs:"
+  print uvals 
+  putStrLn "\nMeasurements:"
+  print ms
+  putStrLn ""
  
 

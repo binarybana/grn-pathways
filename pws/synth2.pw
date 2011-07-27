@@ -1,0 +1,16 @@
+o()
+a()
+b(a,o)
+c(a,b)
+
+
+o-1,1->b
+a-1,0->b
+
+a       -1,1-> c
+b       -1,0-> c
+a && b  -0,1-> c
+
+c=measured=0.83
+#b=measured=0.93
+a=measured=0.91
