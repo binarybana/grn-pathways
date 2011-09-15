@@ -22,6 +22,7 @@ import GRN.StateTransition
 
 import System.Environment
 import System.Cmd
+import Text.Printf
 import System.Console.ParseArgs
 import System.FilePath
 import System.Directory
@@ -38,6 +39,9 @@ labelFn (_, (NodeInfo name prob)) = [Label $ StrLabel name, FillColor $ HSV 0 0 
         Style [SItem Filled []]]
   where   shade = 1 - (clamp $ prob**0.4) -- The 0.4 is a gamma correction factor
           clamp x = if x>1 then 1 else if x<0 then 0 else x
+
+edgeLabel :: (Node, Node, EdgeInfo) -> Attributes
+edgeLabel (_,_,(EdgeInfo _ w)) = [Label $ StrLabel (printf "%3.1f" w)]
 
 drawGeneGraph :: DirectedGraph -> Args String -> IO ()
 drawGeneGraph gr args = do

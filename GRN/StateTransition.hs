@@ -43,6 +43,7 @@ import System.IO.Unsafe
 
 fullIteration = {-# SCC "fullIteration" #-} iterateProbs2.iterateProbs 
 
+-- |Push from edges back to the nodes
 iterateProbs2 :: ColoredStateGraph -> ColoredStateGraph
 iterateProbs2 !sgraph = {-# SCC "iterate2" #-} gmap flowProbs sgraph
     where 
@@ -54,6 +55,7 @@ iterateProbs2 !sgraph = {-# SCC "iterate2" #-} gmap flowProbs sgraph
                 newOuts = {-# SCC "newOuts" #-} map (\((EdgeInfo _ w),e)->((EdgeInfo 0.0 w),e)) adj2
                 newIns = {-# SCC "newIns" #-} map (\((EdgeInfo _ w),e)->((EdgeInfo 0.0 w),e)) adj1
 
+-- |Push to the edges from the nodes
 iterateProbs :: ColoredStateGraph -> ColoredStateGraph
 iterateProbs !sgraph = {-# SCC "iterate1" #-} gmap flowProbs sgraph
     where   
@@ -118,7 +120,7 @@ buildKmap gi = Kmap (name gi) predictors (foldl updateMap initMap spways)
             | otherwise = error "Should never reach this pathway 2"
         filterPoses :: Bool -> [[Int]] -> Gene -> [[Int]]
         filterPoses val xs gene
-            | head gene == '!' = filterPoses (not val) xs gene
+            | head gene == '!' = filterPoses (not val) xs (tail gene)
             | otherwise = filter ((==(if val then 1 else 0)).(!!ind)) xs
                 where Just ind = elemIndex gene predictors
 

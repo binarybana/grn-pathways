@@ -33,4 +33,4 @@ Executable GrnSim
         -with-rtsopts=-A16M
         -O -funbox-strict-fields
         -fno-spec-constr-count
-        ---threaded
+        -threaded
