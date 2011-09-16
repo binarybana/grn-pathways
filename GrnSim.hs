@@ -20,6 +20,7 @@ import GRN.Types
 import GRN.Density
 import GRN.Sparse
 import GRN.EM
+import GRN.Uncertainty
 
 import qualified Data.Map as M
 import Data.List
@@ -71,9 +72,9 @@ argList =
     ("If mode=d, then this is the seed, otherwise 0:deterministic equal valued "++
     "outgoing edge probabilities.")
  , Arg "mode" (Just 'm') (Just "mode")
-    (argDataDefaulted "MODE" ArgtypeString "s")
+    (argDataRequired "MODE" ArgtypeString)
     ("s:state transition graph, ss:state transition matrix, p:pathway diagram, "++
-    "sm:modified stg, d:density estimation, em:expectation maximization")
+    "sm:modified stg, d:density estimation, em:expectation maximization, m:Mohammad output")
  , Arg "dmode" Nothing (Just "dmode")
     (argDataDefaulted "DMODE" ArgtypeString "m")
     "m: Matrix multiplication, g: graph"
@@ -84,6 +85,8 @@ argList =
     (argDataRequired "FILE" ArgtypeString) "Input File."
  ]
 
+
+
 main = do
     args <- parseArgsIO ArgsComplete argList
     let inFile = getRequiredArg args "input"
@@ -91,7 +94,7 @@ main = do
         n2 = getRequiredArg args "n2" :: Int
         mode = getRequiredArg args "mode"
         gen = gotArg args "generate"
-        modes = ["s","p","sm","d","ss","em"]
+        modes = ["s","p","sm","d","ss","em","m"]
     if (length (modes\\[mode]) == length mode)
         then error $ usageError args ("Choose a mode: s-state, p-pathway, "
             ++ "sm-state modified, d-density estimation.")
@@ -131,6 +134,10 @@ main = do
 
     when (mode == "em") $ do
         emRun args p
+        return ()
+
+    when (mode == "m") $ do
+        uncertaintyPrint args p
         return ()
 
     when (mode == "sm") $ do

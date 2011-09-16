@@ -49,9 +49,11 @@ smoothingVar = 0.2 -- Variance of smoothing gaussian
 ssaMap :: [Gene] -> SSA -> SSAMap
 ssaMap glist s = M.fromList $ zip glist (U.toList s)
 
+-- | Returns a map Gene->Double of any gene that has a measurement recorded.
 measureMap :: ParseData -> MeasureMap
 measureMap p = M.map fromJust $ M.fromList $ filter (isJust.snd) $ map (\(x,gi)-> (x,measurement gi)) (M.toList p)
 
+-- | Returns a list of Uncertain locations.
 uncertainVals :: KmapSet -> [UncertainSpot]
 uncertainVals ks = filter filtFun $ concatMap explode (M.elems ks)
   where explode (Kmap g upstream x) = map (\(pos,entry)->(g,pos,entry)) (M.toList x)
@@ -62,8 +64,8 @@ filtFun (g,pos,x) = case x of
   X -> True
   _ -> False
 
-fillKentries :: [UncertainSpot] -> Theta -> KmapSet -> KmapSet
-fillKentries spots mm ks = foldr fillKentry ks (zip spots (U.toList mm))
+fillKentries :: [UncertainSpot] -> KmapSet -> Theta -> KmapSet
+fillKentries spots ks mm = foldr fillKentry ks (zip spots (U.toList mm))
 
 fillKentry :: (UncertainSpot,Double) -> KmapSet -> KmapSet
 fillKentry ((g,pos,_),val) ks = M.adjust fill g ks 
@@ -104,7 +106,7 @@ runAndSplit2 args ks masks = map ((\(d,g)->(d, ssaMap (M.keys ks) (genSSA g))).n
 -- Attractors list
 generateNewAttractors :: Args String -> KmapSet -> Masks -> [UncertainSpot] -> Theta -> Attractors
 generateNewAttractors args ks masks us theta = runAndSplit args newks masks
-  where newks = fillKentries us theta ks
+  where newks = fillKentries us ks theta
 
 expectationRun :: EMData -> Theta -> Double
 expectationRun EMData{..} new = emNormSum * (G.sum (V.generate (length emAttractors) eachAttractor))
@@ -163,7 +165,7 @@ emRun args p = do
     --startTheta = U.fromList [0.379,0.5,1.0]
     startTheta = U.replicate n 0.5
 
-    newks = fillKentries uvals startTheta ks
+    newks = fillKentries uvals ks startTheta
     stripG = componentsOf . last . take 10.iterate stripTransNodes $ kmapToStateGraph newks
     stripNodes = map (U.fromList.sort.nodes) stripG
     startAtracs = runAndSplit args newks stripNodes
@@ -253,7 +255,7 @@ emRun args p = do
   printSeg "measurements" (show ms)
  
   when gen $ do
-    let newks2 = fillKentries uvals (fst.last $ path) ks
+    let newks2 = fillKentries uvals ks (fst.last $ path)
         finalGraph = simulate args $ kmapToStateGraph newks2
         stripG2 = componentsOf . last . take 10.iterate stripTransNodes $ finalGraph
         stripNodes2 = map (U.fromList.sort.nodes) stripG2
@@ -262,7 +264,7 @@ emRun args p = do
     drawStateGraph finalGraph args
 
     
-    --let newks2 = fillKentries uvals (fst.head $ path) ks
+    --let newks2 = fillKentries uvals ks (fst.head $ path)
     --    interGraph = kmapToStateGraph newks2
     --    ssd = simulateDOK args $ kmapToDOK newks2
 

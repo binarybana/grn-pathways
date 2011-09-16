@@ -1,0 +1,108 @@
+# Comment
+# This is a reduced version of nfkb-super.pw for speed reasons when doing
+# optimizations. p52 and ap1 were removed as they had no downstream effectors.
+
+
+ikka=measured=0.3
+tnfr=measured=1.0
+
+p65 (ikb,ikka)
+ikb (ikkb,p65)
+
+a20 (p65)
+tnf ()
+tnfr (tnf,lps)
+lps ()
+rip (tnfr)
+ikkb (nemo,lps)
+
+nemo(rip,a20,ltbr)
+
+ltbr ()
+ikka (nemo,ltbr)
+######################
+# 9 & #2 p.348?
+rip             -1,1-> nemo
+a20             -1,0-> nemo
+a20 && rip      -1,0-> nemo
+# #2 p.350 (schmidt-supprian 2000, solt 2007)
+ltbr            -1,1-> nemo
+rip && ltbr     -0,0-> nemo
+
+# 2 p.348
+tnfr        -1,1-> rip
+tnfr        -0,0-> rip
+
+# kawai1999unresponsiveness
+lps         -1,1-> tnfr 
+tnf         -1,1-> tnfr
+lps && tnf  -0,0-> tnfr
+
+# 1
+ltbr        -1,1-> ikka
+nemo        -1,1-> ikka
+nemo && ltbr-0,0-> ikka
+
+#9
+nemo        -1,1-> ikkb
+# schmidt2000nemo
+lps         -1,1-> ikkb
+lps && nemo -0,0-> ikkb
+
+#1 and #3
+p65         -1,1-> ikb && a20
+p65         -0,0-> a20
+
+#1
+ikkb            -0,1-> ikb
+ikkb            -1,0-> ikb
+
+#1
+ikb         -1,0-> p65
+ikb         -0,1-> p65
+#10 in macrophages
+ikka        -1,0-> p65
+
+
+# 1 Hayden and Ghosh 2004 Signaling to NFKB Review
+# 2 Hayden and Ghosh 2008 Sharer Principles in nf-kb signaling
+# 3 Werner et al 2005 Science. Stimulus LPS Specificity
+# 4 Lee et al 2000 Science. Failure to Regulate TNF-Induced NF-KB 
+#   and Cell Death Responses in A20-Deficient Mice
+# 5 Li 2005 PNAS
+# 6 Gerondakis et al 2006 Unravelling Complexities using Mouse KOs
+# 7 Kim et al 2003 role of NEMO in B cell devel and survival
+# 8 Ameyar 2003 AP-1 In apopotosis
+# 9 Zhang 2000 Rip A20 Nemo Recruitment
+# 10 Lawrence 2005 Ikka Resolves inflammation
+
+############################
+# BASELINE: "tnf=1 lps=0 ltbr=0"
+############################
+# (3) A20 Knockout study from 3 Success! P65 is higher with "A20=0" under
+# 
+# (5) Also successful was: baseline:  and nfkb 
+# (only through p52 though as p65 remained similar) increased 
+# when "ikka=0". This follows from Li PNAS 2005 (5)
+#
+# (6 -> Li 1999b) "ikkb=0" leads to lower p65 (higher p52, but meh)
+# which is indicative of higher apoptosis which is seen in hepatocytes
+# under tnf stimulation
+#
+# (7) Also, nfkb decreases while ap-1 increases
+# when "rip=0" is added which follows the result in 6 from 7, but 
+# I need to make sure that 8 backs up the fact that increased ap1
+# and decreased nfkb would result in an increase of apoptosis (what 
+# was actually seen in 7)
+#
+# (6 -> Beg 1995b, Beg and Baltimore 1996, Prendes 2003, Senftleben 2001)
+# "p65=0" Shows again high ap1 but lower p65 which causes more apoptosis
+# in hepatocytes, macrophages, fibroblasts.
+#
+############################
+# BASELINE: "tnf=0 lps=1 ltbr=0"
+############################
+# (6 -> Park 2005, Ruocco 2005) "ikkb=0" leads to higher apoptosis in
+# myeloid cells through lower p65 levels but still high ap-1 levels.
+# when exposed to TLR ligands (LPS)
+#

@@ -1,0 +1,15 @@
+:load GrnSim
+import qualified Data.Vector.Unboxed as U
+
+con <- readFile "pws/nfkb-super.pw"
+let p = parsePW con
+let ks = buildKmaps p
+let ms = measureMap p
+let args = parseArgs ArgsComplete argList "./grnsim" ["-m","em","pws/nkfb-super.pw"]
+let uvals = uncertainVals ks
+let n = length uvals
+let oldt = [0.5,0.5,0.5]
+let newt = [0.1,0.2,0.9]
+let emdat = EMData (runAndSplit args (fillKentries uvals (U.fromList oldt) ks)) ks args ms uvals
+let erVal = expectationRun emdat (U.fromList newt)
+

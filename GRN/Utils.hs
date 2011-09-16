@@ -8,7 +8,7 @@
 -- Portability : portable
 -- 
 
-module GRN.Utils (dec2bin, bin2dec) where
+module GRN.Utils (dec2bin, bin2dec, b2i) where
 import Data.List
 
 dec2bin :: Int -> Int -> [Int]
@@ -19,3 +19,8 @@ dec2bin len y = (replicate (len-(length res)) 0) ++ res -- need to add padding
                          in b : dec2bin' a
 bin2dec :: [Int] -> Int
 bin2dec st = foldl' (\a x->2*a+x) 0 st
+--
+
+b2i :: Bool -> Int
+b2i x | x = 1
+      | otherwise = 0

@@ -24,7 +24,7 @@ Executable GrnSim
   Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
                     regex-posix,directory,filepath,parseargs,Graphalyze,
                     random,statistics,gnuplot,vector,vector-fftw,parallel,
-                    deepseq,vector-strategies >0.1,lbfgsb
+                    deepseq,vector-strategies >0.1,lbfgsb,pretty
   ghc-options:
         -rtsopts
         ---prof -auto-all
