@@ -57,6 +57,20 @@ stripInputNodes pdata orig = foldr strip orig (nodes orig)
             ivals = map (b2i . fromJust . knockout . fromJust . flip M.lookup pdata) inames
             imask = inputGenes pdata
 
+-- | Strips values in an SSD that correspond to those of invalid input gene
+-- parameters
+stripInputSSD :: ParseData -> SSD -> SSD
+stripInputSSD pdata orig = U.ifilter notInput orig
+  where notInput ind val 
+          | compareBin imask ivals ind = True
+          | val < 0.0001 = False 
+          | otherwise = error ("None zero probability in discarded index" ++ 
+                          show ind ++ ", " ++ show val ++ ", " ++ 
+                          show imask ++ ", " ++ show ivals)
+        inames = sort $ inputGeneNames pdata
+        ivals = map (b2i . fromJust . knockout . fromJust . flip M.lookup pdata) inames
+        imask = inputGenes pdata
+
 -- | Returns true if the node matches the input parameters as determined by the
 -- bitmask, and the values that go in those entries
 compareBin :: [Bool] -> [Int] -> Int -> Bool
@@ -68,10 +82,6 @@ compareBin bm vals state = snd $ foldl helper (vals,True) (zip bm (dec2bin (leng
         | not bmv = (x:xs, True)
         | sv /= x = ([],False)
         | otherwise = (xs, True)
-
--- | Filter a binary number by a 'bitmask' of bools
-binaryFilter :: [Bool] -> [Int] ->  [Int]
-binaryFilter bm num = fst . unzip . filter (not . snd) $ zip num bm
 
 -- | Find the 'bitmask' for input genes
 inputGenes :: ParseData -> [Bool]
@@ -100,54 +110,60 @@ uncertaintyPrint args p = do
     ng = M.size ks
     n = length uvals
 
-    hypercorners = map (U.fromList.map fromIntegral.dec2bin n) [0..2^n-1]
+    {-hypercorners = map (U.fromList.map fromIntegral.dec2bin n) [0..2^n-1]-}
+
+    xs = clamped [0,0.2..1]
+    clamped xs = map (\x-> if (x>1.0) then 1.0 else (if (x<0.0) then 0.0 else x)) xs
+    grid = [[]] >>= foldr (>=>) return (replicate n (\x-> [x++[y] | y <- xs]))
+    hypergrid = map (U.fromList) grid
 
     {-printList :: [U.Vector Double] -> String-}
     {-printList x = concat $ intersperse "\n" (map (concatMap (printf "%7.3f").G.toList) $ x)-}
 
     {---startTheta = U.fromList [0.379,0.5,1.0]-}
-    {-startTheta = U.replicate n 0.5-}
+    startTheta = U.replicate n 0.5
 
-    {-newks = fillKentries uvals ks startTheta-}
-    {-stripG = componentsOf . last . take 10.iterate stripTransNodes $ kmapToStateGraph newks-}
-    {-stripNodes = map (U.fromList.sort.nodes) stripG-}
-    {-startAtracs = runAndSplit args newks stripNodes-}
-    {-norms = normSum startAtracs ms-}
+    newks = fillKentries uvals ks startTheta
+    stripG = componentsOf . last . take 10.iterate stripTransNodes $ kmapToStateGraph newks
+    stripNodes = map (U.fromList.sort.nodes) stripG
+    startAtracs = runAndSplit args newks stripNodes
+    norms = normSum startAtracs ms
 
-    {-emdat = EMData startAtracs ks stripG stripNodes norms args ms uvals-}
+    emdat = EMData startAtracs ks stripG stripNodes norms args ms uvals
     
-    {--- type fullEM :: EMData -> Int -> Theta -> [(Theta,EMData)]-}
-    {-optimumTheta = fst . head . fullEM emdat 10 $ startTheta-}
+    -- type fullEM :: EMData -> Int -> Theta -> [(Theta,EMData)]
+    optimumTheta = fst . head . fullEM emdat 10 $ startTheta
 
-    kmaps = map (fillKentries uvals ks) hypercorners
-    graphs = map (stripInputNodes p . kmapToStateGraph) kmaps
-    edgesl = map edges graphs
+    kmaps = map (fillKentries uvals ks) (optimumTheta:hypergrid)
+    ssds = map (stripInputSSD p . simulateDOK args . flip kmapToDOK 0) kmaps
 
-    bp = bin2dec . binaryFilter (inputGenes p) . dec2bin ng
-    filtedges = map (map (\(x,y) -> (bp x, bp y))) 
-    
-    fedges = filtedges edgesl
-    
-  pprint fedges
-  {-print "CHECK:"-}
-  {-print $ map (length . nub . map fst) fedges-}
-  {-print ""-}
+  writeFile "moham.dat" (concatMap ((++"\n") . pprint)ssds)
+
+  print $ map U.length ssds
+  putStrLn ""
+  print $ length ssds
+  putStrLn ""
+  print $ "Optimum Theta: " ++ show optimumTheta
 
   return ()
   
 
 class Pretty a where
-  prettyPrint :: a -> IO()
-  prettyPrint = putStrLn . renderStyle (Style LeftMode 80 0) . prettyShow
+  prettyPrint :: a -> String
+  prettyPrint = renderStyle (Style LeftMode 80 0) . prettyShow
   prettyShow :: a -> Doc
 
-pprint :: Pretty a => a -> IO()
+pprint :: Pretty a => a -> String
 pprint = prettyPrint
 
 instance Pretty Int where
   prettyShow = text . show
+instance Pretty Double where
+  prettyShow = text . printf "%f"
 instance Pretty a => Pretty [a] where
   prettyShow = brackets . hcat . punctuate comma . map prettyShow
+instance (Pretty a, U.Unbox a) => Pretty (U.Vector a) where
+  prettyShow = brackets . hcat . punctuate comma . map prettyShow . U.toList
 instance (Pretty a, Pretty b) => Pretty (a,b) where
   prettyShow (a,b) = prettyShow a <> colon <> prettyShow b 
 
