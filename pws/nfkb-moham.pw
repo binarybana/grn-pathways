@@ -9,19 +9,20 @@
 #ikka=measured=0.95
 p65=measured=0.95
 
+ltbr ()
+tnf ()
+lps ()
+
 p65 (ikb,ikka)
 ikb (ikkb,p65)
 
 a20 (p65)
-tnf ()
 tnfr (tnf,lps)
-lps ()
 rip (tnfr)
 ikkb (nemo,lps)
 
 nemo(rip,a20,ltbr)
 
-ltbr ()
 p52  (ikka)
 ikka (nemo,ltbr)
 ######################

@@ -21,7 +21,7 @@ digraph fgl {
 	4 -> 9 [label = ""]
 	5 -> 3 [arrowhead="tee",color="#DF4B43"]
 	6 -> 5 [label = ""]
-	6 -> 13 [label = ""]
+	6 -> 13 [style="dashed",label = ""]
 	7 -> 8 [style="dashed", label = ""]
 	7 -> 4 [label = ""]
 	8 -> 5 [label = ""]

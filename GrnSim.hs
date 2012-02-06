@@ -38,7 +38,7 @@ import Data.Graph.Analysis
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 import qualified Data.Vector.Generic as G
-import Statistics.KernelDensity
+import Statistics.Sample.KernelDensity
 import Statistics.Sample
 import Graphics.Gnuplot.Simple
 

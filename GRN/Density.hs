@@ -37,17 +37,17 @@ import Numeric.FFT.Vector.Unitary
 
 import Data.Graph.Analysis.Algorithms.Common (componentsOf)
 
-import Statistics.KernelDensity
+import Statistics.Sample.KernelDensity
 import Statistics.Sample
 import Statistics.Constants
-import Statistics.Distribution
+import Statistics.Distribution hiding (stdDev)
 import Statistics.Distribution.Normal
 import Graphics.Gnuplot.Simple hiding (Points)
 
 
 
 step = 0.01 -- Step size
-nl = 101 -- Number of poitns
+nl = 101 :: Int -- Number of poitns
 smoothingVar = 0.001 -- Variance of smoothing gaussian
 
 points = U.enumFromStepN 0.00 step nl
@@ -56,11 +56,7 @@ normSmooth mu = G.map (density $ normalDistr mu smoothingVar) points
 stdNorm = normSmooth 0.5
 
 myKernelEst :: U.Vector Double -> U.Vector Double
-myKernelEst sample = estimatePDF myKern (bandwidth gaussianBW sample) sample (Points points)
-
-myKern f h p v = exp (-0.5 * u * u) * g
-    where u = (v - p) / h
-          g = f * 0.5 * m_2_sqrt_pi * m_1_sqrt_2 
+myKernelEst sample = fst $ kde_ nl 0.0 1.0 sample 
 
 myEst :: U.Vector Double -> U.Vector Double
 myEst xv  | stdDev xv < 0.001 = normalize.normSmooth $ (G.sum xv / (fromIntegral.G.length $ xv))

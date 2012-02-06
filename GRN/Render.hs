@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings #-}
 -- |
 -- Module    : GRN.Render
 -- Copyright : (c) 2011 Jason Knight
@@ -16,6 +16,9 @@ module GRN.Render where
 import Data.Graph.Inductive
 import Data.Graph.Inductive.Graph
 import Data.GraphViz
+import Data.GraphViz.Attributes
+import Data.GraphViz.Attributes.Complete
+
 import GRN.Types
 import GRN.Parse
 import GRN.StateTransition
@@ -27,6 +30,8 @@ import System.Console.ParseArgs
 import System.FilePath
 import System.Directory
 import Control.Monad
+import Data.Text.Lazy (pack)
+import qualified Data.Text.Lazy.IO as T
 
 
 -- data NodeInfo = NodeInfo String !Double
@@ -35,13 +40,13 @@ import Control.Monad
 -- type DirectedGraph = Gr String String
 
 labelFn :: (Node,NodeInfo) -> Attributes
-labelFn (_, (NodeInfo name prob)) = [Label $ StrLabel name, FillColor $ HSV 0 0 shade, 
+labelFn (_, (NodeInfo name prob)) = [Label . StrLabel . pack $ name, FillColor $ HSV 0 0 shade, 
         Style [SItem Filled []]]
   where   shade = 1 - (clamp $ prob**0.4) -- The 0.4 is a gamma correction factor
           clamp x = if x>1 then 1 else if x<0 then 0 else x
 
 edgeLabel :: (Node, Node, EdgeInfo) -> Attributes
-edgeLabel (_,_,(EdgeInfo _ w)) = [Label $ StrLabel (printf "%3.1f" w)]
+edgeLabel (_,_,(EdgeInfo _ w)) = [Label . StrLabel . pack $ (printf "%3.1f" w)]
 
 drawGeneGraph :: DirectedGraph -> Args String -> IO ()
 drawGeneGraph gr args = do
@@ -49,8 +54,8 @@ drawGeneGraph gr args = do
         prog   = getRequiredArg args "prog"
         outDot = (dropExtension outImg) ++ ".dot"
         dotCons = graphToDot nonClusteredParams gr
-    con <- prettyPrint dotCons
-    writeFile outDot con
+        con = printDotGraph dotCons
+    T.writeFile outDot con
     rawSystem prog ["-Tsvg","-o",outImg,outDot]
     when (gotArg args "open") $ do
         rawSystem "xdg-open" [outImg]
@@ -63,8 +68,8 @@ drawStateGraph gr args = do
         prog   = getRequiredArg args "prog"
         outDot = (dropExtension outImg) ++ ".dot"
         dotCons = graphToDot nonClusteredParams{ fmtNode = labelFn } gr
-    con <- prettyPrint dotCons
-    writeFile outDot con
+        con = printDotGraph dotCons
+    T.writeFile outDot con
     rawSystem prog ["-Tsvg","-o",outImg,outDot]
     when (gotArg args "open") $ do
         rawSystem "xdg-open" [outImg]

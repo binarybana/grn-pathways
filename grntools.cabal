@@ -1,6 +1,6 @@
-Name:               grn
-Version:            0.1
-Synopsis:           GRN inference from Pathways
+Name:               grntools
+Version:            0.2
+Synopsis:           GRN tools for modeling from biological pathways.
 Description:
   This program will convert a set of pathways written in a precise manner into 
   a discrete time, discrete space Markov chain, simulate its long run 
@@ -24,7 +24,7 @@ Executable GrnSim
   Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
                     regex-posix,directory,filepath,parseargs,Graphalyze,
                     random,statistics,gnuplot,vector,vector-fftw,parallel,
-                    deepseq,vector-strategies >0.1,lbfgsb,pretty
+                    deepseq,vector-strategies >0.1,lbfgsb,pretty,text
   ghc-options:
         -rtsopts
         ---prof -auto-all
@@ -34,3 +34,21 @@ Executable GrnSim
         -O -funbox-strict-fields
         -fno-spec-constr-count
         -threaded
+  Extensions: FlexibleInstances
+
+Library
+  Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
+                    regex-posix,directory,filepath,parseargs,Graphalyze,
+                    random,statistics,gnuplot,vector,vector-fftw,parallel,
+                    deepseq,vector-strategies >0.1,lbfgsb,pretty,text
+  Exposed-Modules:  GRN.EM
+                    GRN.Density
+                    GRN.Render
+                    GRN.Parse
+                    GRN.Sparse
+                    GRN.StateTransition
+                    GRN.Types
+                    GRN.Uncertainty
+                    GRN.Utils
+  Extensions: FlexibleInstances
+
