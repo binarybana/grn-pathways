@@ -14,9 +14,9 @@ License-file:       LICENSE
 Author:             Jason Knight <jason@jasonknight.us>
 Maintainer:         Jason Knight <jason@jasonknight.us>
 Build-Type:         Simple
-Copyright:          2010, 2011 Jason Knight
+Copyright:          2010, 2011, 2012 Jason Knight
 Category:           Bioinformatics, Scientific Simulation, Simulation
-Cabal-Version:	    >=1.6
+Cabal-Version:	    >=1.8
 Homepage:           http://www.jasonknight.us/software
 
 Executable GrnSim
@@ -24,7 +24,8 @@ Executable GrnSim
   Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
                     regex-posix,directory,filepath,parseargs,Graphalyze,
                     random,statistics,gnuplot,vector,vector-fftw,parallel,
-                    deepseq,vector-strategies >0.1,lbfgsb,pretty,text
+                    deepseq,vector-strategies >0.1,lbfgsb,pretty,text,
+                    math-functions
   ghc-options:
         -rtsopts
         ---prof -auto-all
@@ -40,7 +41,8 @@ Library
   Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
                     regex-posix,directory,filepath,parseargs,Graphalyze,
                     random,statistics,gnuplot,vector,vector-fftw,parallel,
-                    deepseq,vector-strategies >0.1,lbfgsb,pretty,text
+                    deepseq,vector-strategies>0.1,lbfgsb,pretty,text,
+                    math-functions
   Exposed-Modules:  GRN.EM
                     GRN.Density
                     GRN.Render
@@ -52,3 +54,24 @@ Library
                     GRN.Utils
   Extensions: FlexibleInstances
 
+Test-suite tests
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is:        tests.hs
+  other-modules:
+    Tests.Helpers
+    Tests.Parse
+
+  ghc-options:
+    -threaded -rtsopts
+
+  build-depends:
+    grntools,
+    containers,
+    base,
+    HUnit,
+    QuickCheck >= 2,
+    test-framework,
+    test-framework-quickcheck2,
+    test-framework-hunit,
+    math-functions

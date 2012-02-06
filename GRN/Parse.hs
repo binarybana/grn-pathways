@@ -49,6 +49,7 @@ paths :: Parser (Maybe Pathway)
 paths = do
         let ampSep = try (ss >> string "&&" >> ss)
             geneID = (many1 $ noneOf "#-& \n") <?> "GeneID"
+        ss
         gpre <- sepBy1 geneID ampSep
         ss
         char '-'
@@ -100,6 +101,7 @@ validLine = do
 
 addKnock (gene, kbool) initMap = M.adjust (\x -> x{knockout=Just kbool}) gene initMap
 
+addMeasure :: (Gene, Double) -> ParseData -> ParseData
 addMeasure (gene, measure) initMap = M.adjust (\x -> x{measurement=Just measure}) gene initMap
 
 addPath (Pathway _ _  _  []) initMap =  initMap
@@ -108,6 +110,7 @@ addPath (Pathway a b1 b2 (p:ps)) initMap = addPath (Pathway a b1 b2 ps) postMap
                 pw = Pathway a b1 b2 [p]
 
 
+parsePW :: String -> ParseData
 parsePW input = if not allUsed
                     then error "Syntax error in your pathway file."
                     else foldr addMeasure knockMap measureList
@@ -126,6 +129,7 @@ parsePW input = if not allUsed
                             Left err -> error ("Parsing error: " ++ (show err))
                             Right ret -> ret
 
+fileNamePW :: FilePath -> IO ParseData
 fileNamePW filename = do
         con <- readFile filename
         return $ parsePW con

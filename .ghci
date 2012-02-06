@@ -1,3 +1,0 @@
-:load GrnSim
-import qualified Data.Vector.Unboxed as U
-

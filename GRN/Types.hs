@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns,TypeSynonymInstances #-}
+{-# LANGUAGE BangPatterns,TypeSynonymInstances,FlexibleInstances #-}
 -- |
 -- Module    : GRN.Types
 -- Copyright : (c) 2011 Jason Knight
@@ -18,18 +18,18 @@ import Data.Graph.Inductive
 import System.Console.ParseArgs
 import Data.Map (Map)
 import qualified Data.Vector.Unboxed as U
-import qualified Data.Vector as V
+{-import qualified Data.Vector as V-}
 import Control.DeepSeq
 
 type Gene = String
-data Pathway = Pathway [Gene] Bool Bool [Gene] deriving (Show)
+data Pathway = Pathway [Gene] Bool Bool [Gene] deriving (Show,Eq)
 
 data GeneInfo = GeneInfo {
                     name        :: Gene,
                     knockout    :: Maybe Bool,
                     measurement :: Maybe Double,
                     depends     :: [Gene],
-                    pathways    :: [Pathway] } deriving (Show)
+                    pathways    :: [Pathway] } deriving (Show,Eq)
 
 type ParseData = Map Gene GeneInfo
 
@@ -56,7 +56,7 @@ data Kentry = X | C Int | V Int Double | Const
     deriving Show 
 
 instance Show NodeInfo where
-    show (NodeInfo name num) = name ++ "\t" ++ (show num) ++ "\t"
+    show (NodeInfo nam num) = nam ++ "\t" ++ (show num) ++ "\t"
 instance Show EdgeInfo where
     show (EdgeInfo _ weight) = show weight
 
