@@ -39,7 +39,7 @@ import Data.Graph.Analysis.Algorithms.Common (componentsOf)
 
 import Statistics.Sample.KernelDensity
 import Statistics.Sample
-import Statistics.Constants
+import Numeric.MathFunctions.Constants
 import Statistics.Distribution hiding (stdDev)
 import Statistics.Distribution.Normal
 import Graphics.Gnuplot.Simple hiding (Points)

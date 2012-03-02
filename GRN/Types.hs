@@ -82,7 +82,7 @@ data CSC = CSC {
 data EMData = EMData {
       emAttractors :: Attractors
     , emUnfilledKMS :: KmapSet
-    , emComps :: [ColoredStateGraph]
+    ,nemComps :: [ColoredStateGraph]
     , emCompNodes :: Masks
     , emNormSum :: Double
     , emArgs :: Args String

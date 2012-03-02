@@ -24,3 +24,4 @@ bin2dec st = foldl' (\a x->2*a+x) 0 st
 b2i :: Bool -> Int
 b2i x | x = 1
       | otherwise = 0
+

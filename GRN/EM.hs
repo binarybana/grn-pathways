@@ -98,7 +98,7 @@ runAndSplit args ks masks = map ((\(d,s)->(d, ssaMap (M.keys ks) (ssdToSSA s))).
 
 runAndSplit2 :: Args String -> KmapSet -> Masks -> Attractors
 runAndSplit2 args ks masks = map ((\(d,g)->(d, ssaMap (M.keys ks) (genSSA g))).normalizeGraph) raw
-  where ssd = simulateDOK args.kmapToDOK ks $ 0
+  where ssd = simulateDOKUnif args.kmapToDOK ks $ 0
         raw = componentsOf $ convertProbsVG ssd stripG
         stripG = last . take 10.iterate stripTransNodes $ kmapToStateGraph ks
 

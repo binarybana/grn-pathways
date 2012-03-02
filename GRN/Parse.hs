@@ -25,16 +25,35 @@ import Data.Maybe
 import qualified Data.Map as M
 
 
-parsePass :: Parser (Maybe a) -> Parser [a]
-parsePass fn =  liftM catMaybes $ sepEndBy line (char '\n')
-                where line = try fn <|> ((skipMany (noneOf "\n")) >> return Nothing)
+data ParseLine = ParseDependency (Gene, [Gene])
+               | ParsePathway Pathway
+               | ParseKnockout (Gene, Bool)
+               | ParseMeasurement (Gene, Double)
+                  deriving (Show,Eq)
+
+dataLayers :: [ParseLine -> ParseData -> ParseData]
+dataLayers = [addPath, addKnock, addMeasure]
+
+parseLayers :: [Parser (Maybe ParseLine)]
+parseLayers = [deps, paths, knocks, measurements]
+
+parseLine :: Parser (Maybe ParseLine)
+parseLine = do
+    ss
+    try (comment >> return Nothing) 
+      <|> choice (map try parseLayers)
 
 ss = skipMany space
-tillEnd = skipMany (noneOf "\n")
+tillNext = skipMany (noneOf "\n") >> ss
+comment = ss >> char '#' >> tillNext
+p_float :: CharParser () Double
+p_float = do  s<- getInput
+              case readSigned readFloat s of
+                [(n,s')] -> n <$ setInput s'
+                _        -> empty
 
-deps :: Parser (Maybe (Gene,[Gene]))
+deps :: Parser (Maybe ParseLine)
 deps = do
-        ss
         g <- many1 alphaNum
         ss
         char '('
@@ -42,14 +61,13 @@ deps = do
         deps <- sepBy (many1 alphaNum) (char ',')
         ss
         char ')'
-        tillEnd
-        return $ Just (g,deps)
+        tillNext
+        return $ Just $ ParseDependency (g, deps)
 
-paths :: Parser (Maybe Pathway)
+paths :: Parser (Maybe ParseLine)
 paths = do
         let ampSep = try (ss >> string "&&" >> ss)
             geneID = (many1 $ noneOf "#-& \n") <?> "GeneID"
-        ss
         gpre <- sepBy1 geneID ampSep
         ss
         char '-'
@@ -59,73 +77,59 @@ paths = do
         string "->"
         ss
         gpost <- sepBy1 geneID ampSep
-        tillEnd
+        tillNext
         let i2b x = if x == '0' then False else True
-        return $ Just (Pathway gpre (i2b pre) (i2b post) gpost)
+        return $ Just (ParsePathway $ Pathway gpre (i2b pre) (i2b post) gpost)
 
-knocks :: Parser (Maybe (Gene,Bool))
+knocks :: Parser (Maybe ParseLine)
 knocks = do
-        ss
         gene <- many1 alphaNum
         ss
         char '='
         ss
         kstate <- digit
-        tillEnd
+        tillNext
         let kbool = if kstate == '0' then False else True
-        return $ Just (gene,kbool)
+        return $ Just $ ParseKnockout (gene, kbool)
 
-measurements :: Parser (Maybe (Gene,Double))
+measurements :: Parser (Maybe ParseLine)
 measurements = do
-        ss
         gene <- many1 alphaNum
         ss
         string "=measured="
         ss
         measure <- p_float
-        tillEnd
-        return $ Just (gene,measure)
+        tillNext
+        return $ Just $ ParseMeasurement (gene, measure)
 
-p_float :: CharParser () Double
-p_float = do  s<- getInput
-              case readSigned readFloat s of
-                [(n,s')] -> n <$ setInput s'
-                _        -> empty
 
-validLine :: Parser (Maybe ())
-validLine = do
-            ss
-            alphaNum <|> char '!'
-            tillEnd
-            return $ Just ()
+addKnock :: ParseLine -> ParseData -> ParseData
+addKnock (ParseKnockout (gene, kbool)) initMap = M.adjust (\x -> x{knockout=Just kbool}) gene initMap
+addKnock _ initMap = initMap
 
-addKnock (gene, kbool) initMap = M.adjust (\x -> x{knockout=Just kbool}) gene initMap
+addMeasure :: ParseLine -> ParseData -> ParseData
+addMeasure (ParseMeasurement (gene, measure)) initMap = M.adjust (\x -> x{measurement=Just measure}) gene initMap
+addMeasure _ initMap = initMap
 
-addMeasure :: (Gene, Double) -> ParseData -> ParseData
-addMeasure (gene, measure) initMap = M.adjust (\x -> x{measurement=Just measure}) gene initMap
-
-addPath (Pathway _ _  _  []) initMap =  initMap
-addPath (Pathway a b1 b2 (p:ps)) initMap = addPath (Pathway a b1 b2 ps) postMap 
+addPath :: ParseLine -> ParseData -> ParseData
+addPath (ParsePathway (Pathway a b1 b2 (p:ps))) initMap = addPath (ParsePathway $ Pathway a b1 b2 ps) postMap 
         where   postMap = M.adjust (\x -> x{pathways=pw:(pathways x)}) p initMap
                 pw = Pathway a b1 b2 [p]
+addPath _ initMap = initMap
 
+parseText :: Parser [ParseLine]
+parseText = do ss
+               plines <- many parseLine
+               ss
+               return (catMaybes plines)
 
 parsePW :: String -> ParseData
-parsePW input = if not allUsed
-                    then error "Syntax error in your pathway file."
-                    else foldr addMeasure knockMap measureList
-        where   knockMap = foldr addKnock pathMap knockList
-                pathMap = foldr addPath initMap pathList
+parsePW input = foldr (\f dict -> foldr f dict plines) initMap dataLayers
+        where   
                 initMap = M.fromList $ map create depsList
                 create (g,d) = (g, GeneInfo g Nothing Nothing d [])
-                knockList = execute knocks "Knockouts"
-                measureList = execute measurements "Measurements"
-                depsList = execute deps "Dependencies"
-                pathList = execute paths "Pathways" 
-                validList = execute validLine "Valids"
-                allUsed = length validList == length pathList
-                           + length depsList + length knockList + length measureList
-                execute fn passname = case parse (parsePass fn) passname input of
+                depsList      = [ x | ParseDependency x <- plines] 
+                plines = case parse parseText "Input text" input of
                             Left err -> error ("Parsing error: " ++ (show err))
                             Right ret -> ret
 

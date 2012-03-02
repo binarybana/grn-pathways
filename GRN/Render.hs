@@ -24,13 +24,15 @@ import GRN.Parse
 import GRN.StateTransition
 
 import System.Environment
-import System.Cmd
+import System.Process
+import System.Exit
 import Text.Printf
 import System.Console.ParseArgs
 import System.FilePath
 import System.Directory
 import Control.Monad
 import Data.Text.Lazy (pack)
+import Data.Ratio
 import qualified Data.Text.Lazy.IO as T
 
 
@@ -46,7 +48,9 @@ labelFn (_, (NodeInfo name prob)) = [Label . StrLabel . pack $ name, FillColor $
           clamp x = if x>1 then 1 else if x<0 then 0 else x
 
 edgeLabel :: (Node, Node, EdgeInfo) -> Attributes
-edgeLabel (_,_,(EdgeInfo _ w)) = [Label . StrLabel . pack $ (printf "%3.1f" w)]
+{-edgeLabel (_,_,(EdgeInfo _ w)) = [penWidth (5*w)-}
+        {-, Label . StrLabel . pack $ (show $ approxRational w 0.1)]-}
+edgeLabel (_,_,(EdgeInfo _ w)) = [penWidth (5*w), Label . StrLabel . pack $ (printf "%3.0f" (100*w))]
 
 drawGeneGraph :: DirectedGraph -> Args String -> IO ()
 drawGeneGraph gr args = do
@@ -56,9 +60,12 @@ drawGeneGraph gr args = do
         dotCons = graphToDot nonClusteredParams gr
         con = printDotGraph dotCons
     T.writeFile outDot con
-    rawSystem prog ["-Tsvg","-o",outImg,outDot]
+    eCode <- rawSystem prog ["-Tsvg","-o",outImg,outDot]
+    case eCode of
+      ExitSuccess -> return ()
+      ExitFailure _ -> error "Make sure you have GraphViz installed and on the PATH."
     when (gotArg args "open") $ do
-        rawSystem "xdg-open" [outImg]
+        system ("xdg-open " ++ outImg ++ " > /dev/null 2>&1")
         return ()
     --removeFile outDot
 
@@ -70,9 +77,29 @@ drawStateGraph gr args = do
         dotCons = graphToDot nonClusteredParams{ fmtNode = labelFn } gr
         con = printDotGraph dotCons
     T.writeFile outDot con
-    rawSystem prog ["-Tsvg","-o",outImg,outDot]
+    eCode <- rawSystem prog ["-Tsvg","-o",outImg,outDot]
+    case eCode of
+      ExitSuccess -> return ()
+      ExitFailure _ -> error "Make sure you have GraphViz installed and on the PATH."
     when (gotArg args "open") $ do
-        rawSystem "xdg-open" [outImg]
+        system ("xdg-open " ++ outImg ++ " > /dev/null 2>&1")
         return ()
     --removeFile outDot
 
+drawDataFlow :: ColoredStateGraph -> Args String -> IO ()
+drawDataFlow gr args = do
+    let outImg = getRequiredArg args "output"
+        prog   = getRequiredArg args "prog"
+        outDot = (dropExtension outImg) ++ ".dot"
+        dotCons = graphToDot nonClusteredParams{ fmtNode = labelFn, fmtEdge = edgeLabel } gr
+        con = printDotGraph dotCons
+    T.writeFile outDot con
+    eCode <- rawSystem prog ["-Tsvg","-o",outImg,outDot]
+    case eCode of
+      ExitSuccess -> return ()
+      ExitFailure _ -> error "Make sure you have GraphViz installed and on the PATH."
+    when (gotArg args "open") $ do
+        system ("xdg-open " ++ outImg ++ " > /dev/null 2>&1")
+        {-rawSystem "xdg-open" [outImg]-}
+        return ()
+    --removeFile outDot

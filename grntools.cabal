@@ -19,6 +19,10 @@ Category:           Bioinformatics, Scientific Simulation, Simulation
 Cabal-Version:	    >=1.8
 Homepage:           http://www.jasonknight.us/software
 
+Flag Library
+  Description: Whether to build the library or not
+  Default: False
+
 Executable GrnSim
   Main-is:	        GrnSim.hs
   Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
@@ -38,11 +42,14 @@ Executable GrnSim
   Extensions: FlexibleInstances
 
 Library
-  Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
-                    regex-posix,directory,filepath,parseargs,Graphalyze,
-                    random,statistics,gnuplot,vector,vector-fftw,parallel,
-                    deepseq,vector-strategies>0.1,lbfgsb,pretty,text,
-                    math-functions
+  if flag(library)
+    Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
+                      regex-posix,directory,filepath,parseargs,Graphalyze,
+                      random,statistics,gnuplot,vector,vector-fftw,parallel,
+                      deepseq,vector-strategies>0.1,lbfgsb,pretty,text,
+                      math-functions
+  Else
+    Buildable: False
   Exposed-Modules:  GRN.EM
                     GRN.Density
                     GRN.Render

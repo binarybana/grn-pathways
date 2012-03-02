@@ -56,8 +56,11 @@ multiplyCSCVM CSC{..} x = {-# SCC "csc1" #-}  U.generate (U.length x) outer
                 (!) a b = U.unsafeIndex a b
                 pre     = U.enumFromN 0 (U.length rowIndices) :: U.Vector Int
 
-simulateDOK :: Args String -> DOK -> SSD
-simulateDOK args d@(DOK (m,n) _) = regSim (n1+n2) (U.replicate n (1.0/(fromIntegral n)))
+simulateDOKUnif :: Args String -> DOK -> SSD
+simulateDOKUnif args d@(DOK (m,n) _) = simulateDOK args d (U.replicate n (1.0/(fromIntegral n)))
+
+simulateDOK :: Args String -> DOK -> SSD -> SSD
+simulateDOK args d@(DOK (m,n) _) start = regSim (n1+n2) start
       where 
             n1 = getRequiredArg args "n1" :: Int
             n2 = getRequiredArg args "n2"
@@ -89,7 +92,7 @@ calcSSAsDOK args p ks = zipNames . allgenes . ssaVec . simVec $ seedList
     seedList = V.enumFromN (n4) (n3+n4)
 
     simVec :: V.Vector Int -> V.Vector SSD
-    simVec xv = G.map (simulateDOK args.kmapToDOK ks) xv `using` (parVector 2)
+    simVec xv = G.map (simulateDOKUnif args.kmapToDOK ks) xv `using` (parVector 2)
 
     -- Now get the SSAs of these 
     ssaVec :: V.Vector SSD -> V.Vector SSA
@@ -123,6 +126,11 @@ kmapToDOK kset x = DOK (nStates,nStates) (M.fromList edges)
             where   
                 from = bin2dec st
                 tos = [(1.0,[])] >>= foldr (>=>) return (stateKmapLus x st genes kset)
+
+checkStochasticDOK :: DOK -> Bool
+checkStochasticDOK (DOK (n,_) mat) = all close rows where
+  close x = if x-1 < 1e-12 then True else False
+  rows = map (sum . map snd) $ groupBy (\((x1,_),_) ((x2,_),_) -> x1==x2) $ M.assocs mat
 
 --multiplyCRSMV :: CRS Double -> Vector Double -> Vector Double
 --multiplyCRSMV CRS{..} x = generate (U.length x) outer

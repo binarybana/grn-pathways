@@ -135,7 +135,7 @@ uncertaintyPrint args p = do
     optimumTheta = fst . head . fullEM emdat 10 $ startTheta
 
     kmaps = map (fillKentries uvals ks) (optimumTheta:hypergrid)
-    ssds = parMap rdeepseq (stripInputSSD p . simulateDOK args . flip kmapToDOK 0) kmaps 
+    ssds = parMap rdeepseq (stripInputSSD p . simulateDOKUnif args . flip kmapToDOK 0) kmaps 
 
   writeFile "moham.dat" (pprint ssds)
 

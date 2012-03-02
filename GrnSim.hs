@@ -21,6 +21,7 @@ import GRN.Density
 import GRN.Sparse
 import GRN.EM
 import GRN.Uncertainty
+import GRN.DataFlow
 
 import qualified Data.Map as M
 import Data.List
@@ -49,6 +50,9 @@ argList =
  , Arg "extra" (Just 'e') (Just "extra") 
     (argDataDefaulted "PW_ARGS" ArgtypeString "") 
     "Extra Pathway arguments; space delimited."
+ , Arg "extra2" (Just 'f') (Just "extra2") 
+    (argDataDefaulted "PW_ARGS" ArgtypeString "") 
+    "Extra Pathway arguments; space delimited For SM runs."
  , Arg "reduce" (Just 'r') (Just "reduce") Nothing 
     "Reduce output graph to attractor cycles." 
  , Arg "generate" (Just 'g') (Just "generate") Nothing
@@ -73,14 +77,21 @@ argList =
     "outgoing edge probabilities.")
  , Arg "mode" (Just 'm') (Just "mode")
     (argDataRequired "MODE" ArgtypeString)
-    ("s:state transition graph, ss:state transition matrix, p:pathway diagram, "++
-    "sm:modified stg, d:density estimation, em:expectation maximization, m:Mohammad output")
+    ("s:state transition graph, ss:state transition matrix, p:pathway diagram, \
+    \sm:modified stg, d:density estimation, em:expectation maximization, \
+    \m:Mohammad output, df: DataFlow")
  , Arg "dmode" Nothing (Just "dmode")
     (argDataDefaulted "DMODE" ArgtypeString "m")
     "m: Matrix multiplication, g: graph"
  , Arg "prog" (Just 'p') (Just "prog")
     (argDataDefaulted "PROG" ArgtypeString "dot")
     "Graphviz Draw Program to generate output"
+ , Arg "knock" (Just 'k') (Just "knock")
+    (argDataDefaulted "KNOCK" ArgtypeString "det")
+    "Knockouts in Dataflow mode: det(erministic), stoch(astic)"
+ , Arg "gamma" Nothing (Just "gamma") 
+    (argDataDefaulted "DOUBLE" ArgtypeDouble 0.1)
+    "Amount to modify edges in dataflow mode."
  , Arg "input" Nothing Nothing
     (argDataRequired "FILE" ArgtypeString) "Input File."
  ]
@@ -94,13 +105,13 @@ main = do
         n2 = getRequiredArg args "n2" :: Int
         mode = getRequiredArg args "mode"
         gen = gotArg args "generate"
-        modes = ["s","p","sm","d","ss","em","m"]
+        modes = ["s","p","sm","d","ss","em","m","df"]
     if (length (modes\\[mode]) == length mode)
         then error $ usageError args ("Choose a mode: s-state, p-pathway, "
             ++ "sm-state modified, d-density estimation.")
         else return ()
     con <- readFile inFile 
-    let start = parsePW $ con ++ (unlines.words $ "tnf=0 ltbr=0 lps=0")
+    let start = parsePW $ con ++ (unlines.words $ getRequiredArg args "extra2")
         p = parsePW $ con ++ (unlines.words $ getRequiredArg args "extra")
 
     when (mode == "s") $ do
@@ -114,7 +125,7 @@ main = do
 
     when (mode == "ss") $ do
         let initm = (kmapToDOK.buildKmaps $ p)  0
-            finalSSD = simulateDOK args initm
+            finalSSD = simulateDOKUnif args initm
             (DOK (n,_) m) = initm
         mapM_ (printf "%7s") (M.keys p)
         putStrLn ""
@@ -126,6 +137,24 @@ main = do
         --Cant draw a graph when we have a matrix... well we could, but we'd
         --have to convert:
         --when gen $ drawStateGraph finalGraph args
+        return ()
+
+    when (mode == "df") $ do
+        let initm = parseToDataFlow args p
+            finalSSD = simulateDOKUnif args initm
+            graph = convertProbsVG finalSSD $ dataFlowToGraph initm
+            (DOK (n,_) m) = initm
+        mapM_ (printf "%7s") (M.keys p)
+        putStrLn ""
+        --print $ maximum $ map (snd) $ M.keys m
+        --print $ G.length $ colIndices $ dokToCSC initm
+        --print $ G.length $ rowIndices $ dokToCSC initm
+        --print $ G.length $ cscValues $ dokToCSC initm
+        {-print $ finalSSD-}
+        printSSA $ ssdToSSA finalSSD
+        --Cant draw a graph when we have a matrix... well we could, but we'd
+        --have to convert:
+        when gen $ drawDataFlow graph args
         return ()
 
     when (mode == "d") $ do
@@ -141,13 +170,14 @@ main = do
         return ()
 
     when (mode == "sm") $ do
-        let initg = kmapToStateGraph.buildKmaps $ start
-            secondg = convertProbsGG (simulate args initg) (kmapToStateGraph.buildKmaps $ p)
-            finalGraph = simulate args secondg
+        let initm = (kmapToDOK.buildKmaps $ start)  0
+            secm = (kmapToDOK.buildKmaps $ p) 0
+            interSSD = simulateDOKUnif args initm
+            (DOK (n,_) m) = initm
+            finalSSD = simulateDOK args secm interSSD
         mapM_ (printf "%7s") (M.keys p)
         putStrLn ""
-        printSSA $ genSSA finalGraph
-        when gen $ drawStateGraph finalGraph args
+        printSSA $ ssdToSSA finalSSD
         return ()
 
     when (mode == "p") $ do
@@ -155,3 +185,5 @@ main = do
         when gen $ drawGeneGraph finalGraph args
         return ()
 
+defArgs :: Args String
+defArgs = parseArgs ArgsComplete argList "./grnsim" []
