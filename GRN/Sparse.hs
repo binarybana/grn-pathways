@@ -12,11 +12,21 @@
 -- simulation of the Markov Chain.
 --
 
-module GRN.Sparse where
-
-import Data.Vector.Unboxed (Vector)
+module GRN.Sparse (
+    calcSSAsDOK
+  , simulateDOKUnif 
+  , simulateDOK 
+  , normalizeSSD 
+  , simulateCSC 
+  , kmapToDOK 
+  , ssdToSSA 
+  , weightedExpansion
+  , getNSamples
+  , module GRN.SparseLib
+  ) where
 
 import GRN.Types
+import GRN.SparseLib
 import GRN.Utils
 import GRN.StateTransition
 
@@ -32,29 +42,8 @@ import Data.Bits
 import Data.Ord (comparing)
 import qualified Data.Map as M
 import System.Console.ParseArgs
-
-dokToCSC :: DOK -> CSC
-dokToCSC (DOK (m,n) d) = CSC (m,n) vals rows cumsum
-  where
-  cumsum = U.scanl' (+) 0 counts
-  counts = (U.replicate n 0) U.// colGroups
-  colGroups = map (\x->(head x,length x)) $ group $ map (snd.fst) xs
-  vals = U.fromList (map snd xs)
-  rows = U.fromList (map (fst.fst) xs)
-  xs = sortBy sortCol $ M.toList d
-  sortCol ((r1,c1),_) ((r2,c2),_)
-    | c1 < c2 = LT
-    | c1 > c2 = GT
-    | c1 == c2 = compare r1 r2
-
-multiplyCSCVM :: CSC -> Vector Double -> Vector Double
-multiplyCSCVM CSC{..} x = {-# SCC "csc1" #-}  U.generate (U.length x) outer
-  where outer i = {-# SCC "csc2" #-}  U.sum . U.map inner $ U.slice start (end-start) pre
-          where inner j = {-# SCC "csc5" #-}  (cscValues ! j) * (x ! (rowIndices ! j))
-                start   = colIndices ! i
-                end     = colIndices ! (i+1)
-                (!) a b = U.unsafeIndex a b
-                pre     = U.enumFromN 0 (U.length rowIndices) :: U.Vector Int
+import System.Random.MWC (withSystemRandom, initialize, uniformVector)
+import Data.Word (Word32)
 
 simulateDOKUnif :: Args String -> DOK -> SSD
 simulateDOKUnif args d@(DOK (m,n) _) = simulateDOK args d (U.replicate n (1.0/(fromIntegral n)))
@@ -81,6 +70,21 @@ simulateCSC args csc start = regSim (n1+n2) start
             regSim 0 v = v
             regSim n v = regSim (n-1) (multiplyCSCVM csc v)
 
+kmapToDOK :: KmapSet -> Int -> DOK
+kmapToDOK kset x = DOK (nStates,nStates) (M.fromList edges)
+    where
+        genes = M.keys kset
+        nGenes = length genes
+        nStates = 2^nGenes 
+        intStates = [0..nStates-1]
+        permedStates = map (dec2bin nGenes) intStates 
+        edges = concatMap genEdges permedStates 
+        genEdges :: [Int] -> [((Int,Int),Double)]
+        genEdges st = map (\(val,to)-> ((from,bin2dec to),val)) tos
+            where   
+                from = bin2dec st
+                tos = [(1.0,[])] >>= foldr (>=>) return (stateKmapLus x st genes kset)
+
 calcSSAsDOK :: Args String -> ParseData -> KmapSet -> GeneMC
 calcSSAsDOK args p ks = zipNames . allgenes . ssaVec . simVec $ seedList
   where
@@ -105,6 +109,58 @@ calcSSAsDOK args p ks = zipNames . allgenes . ssaVec . simVec $ seedList
     zipNames :: V.Vector (U.Vector Double) -> M.Map Gene (U.Vector Double)
     zipNames xv = M.fromList $ zip (M.keys p) (G.toList xv)
 
+weightedExpansion :: DOK -> V.Vector (Double, CSR)
+weightedExpansion dk@(DOK (m,n) _) = wtdlist where
+  csr = toCSR dk
+  cols = csrcolIndices csr
+  rows = csrrowIndices csr
+  vals = csrValues csr
+  perrow = (rows U.! 1) - (U.head rows)
+  cartesian = G.sequence . chunks perrow . G.convert $ cols
+  cartvals = G.map G.product . G.sequence . chunks perrow . G.convert $ vals
+  newnnz = G.length . G.head $ cartesian
+  newrows = U.enumFromN 0 newnnz
+  newvals = U.replicate newnnz 1.0
+  wtdlist = V.zip cartvals (G.map (\x -> CSR (m,n) newvals (G.convert x) newrows) cartesian)
+
+chunks :: Int -> V.Vector a -> V.Vector (V.Vector a)
+chunks n x = case V.splitAt n x of
+              (a,b) | V.null a -> V.empty
+                    | otherwise -> V.cons a (chunks n b)
+
+getNSamples :: Int -> DOK -> IO (V.Vector (Double,CSR))
+getNSamples samps dk@(DOK (m,n) _) = do
+  let
+    csr = toCSR dk
+    cols = csrcolIndices csr
+    rows = csrrowIndices csr
+    vals = csrValues csr
+    perrow = (rows U.! 1) - (U.head rows)
+    wtdvals = G.convert $ G.zip vals cols
+    rowchunks = chunks perrow $ wtdvals
+    newnnz = G.length rowchunks 
+    newrows = U.enumFromN 0 newnnz
+    newvals = U.replicate newnnz 1.0
+    go gen = do
+      unifs <- uniformVector gen m :: IO (V.Vector Double)
+      let
+        pickedcols = V.zipWith pick unifs rowchunks 
+        weight = G.product . fst . G.unzip $ pickedcols
+        network = CSR (m,n) newvals (G.convert . snd . G.unzip $ pickedcols) newrows
+      return (weight, network)
+    pick :: Double -> V.Vector (Double,Int) -> (Double,Int)
+    pick t vec 
+      | G.null vec = error "Pick used with empty list"
+      | t <= w = (w,x)
+      | otherwise = pick (t-w) xs 
+      where 
+        (w,x) = G.head vec
+        xs = G.tail vec
+  -- Now ,get a list of generators, one for each sample
+  gen <- withSystemRandom (\gen -> initialize =<< (uniformVector gen 256 :: IO (U.Vector Word32)))
+  gens <- V.replicateM samps (initialize =<< (uniformVector gen 256 :: IO (U.Vector Word32)))
+  G.mapM go gens
+
 ssdToSSA :: SSD -> SSA
 ssdToSSA ssd = U.reverse $ U.generate ngenes count
   where
@@ -112,41 +168,3 @@ ssdToSSA ssd = U.reverse $ U.generate ngenes count
   ngenes = round $ logBase 2 (fromIntegral n)
   count i = U.sum $ U.ifilter (\ind _-> testBit ind i) ssd
 
-kmapToDOK :: KmapSet -> Int -> DOK
-kmapToDOK kset x = DOK (nStates,nStates) (M.fromList edges)
-    where
-        genes = M.keys kset
-        nGenes = length genes
-        nStates = 2^nGenes 
-        intStates = [0..nStates-1]
-        permedStates = map (dec2bin nGenes) intStates 
-        edges = concatMap genEdges permedStates 
-        genEdges :: [Int] -> [((Int,Int),Double)]
-        genEdges st = map (\(val,to)-> ((from,bin2dec to),val)) tos
-            where   
-                from = bin2dec st
-                tos = [(1.0,[])] >>= foldr (>=>) return (stateKmapLus x st genes kset)
-
-checkStochasticDOK :: DOK -> Bool
-checkStochasticDOK (DOK (n,_) mat) = all close rows where
-  close x = if x-1 < 1e-12 then True else False
-  rows = map (sum . map snd) $ groupBy (\((x1,_),_) ((x2,_),_) -> x1==x2) $ M.assocs mat
-
---multiplyCRSMV :: CRS Double -> Vector Double -> Vector Double
---multiplyCRSMV CRS{..} x = generate (U.length x) outer
---  where outer i = U.sum . U.map inner $ U.enumFromN start (end-start)
---          where inner j = (crsValues ! j) * (x ! (colIndices ! j))
---                start   = rowIndices ! i
---                end     = rowIndices ! (i+1)
---                (!) a b = unsafeIndex a b
-
-
--- test = do
---     let --m = CRS (U.replicate n 1.0) (U.enumFromN 0 n) (U.enumFromN 0 (n+1))
---         d = DOK (n,n) (M.fromList [((7999,7999),1),((7999,4),1)])
---         ms = CSC (n,n) (U.replicate n 1.0) (U.enumFromN 0 n) (U.enumFromN 0 (n+1))
---         m = dokToCSC d
---         v = U.enumFromN 1.0 n
--- 
---     --print $ U.last $ multiplyCSRMV m v
---     print $ U.last $ multiplyCSCVM m v

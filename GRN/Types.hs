@@ -13,12 +13,11 @@
 
 module GRN.Types where
 
---import Data.Graph.Inductive.PatriciaTree (Gr,UGr)
+import GRN.SparseLib
 import Data.Graph.Inductive
 import System.Console.ParseArgs
 import Data.Map (Map)
 import qualified Data.Vector.Unboxed as U
-{-import qualified Data.Vector as V-}
 import Control.DeepSeq
 
 type Gene = String
@@ -59,25 +58,6 @@ instance Show NodeInfo where
     show (NodeInfo nam num) = nam ++ "\t" ++ (show num) ++ "\t"
 instance Show EdgeInfo where
     show (EdgeInfo _ weight) = show weight
-
--- | A compressed row storage (CRS) sparse matrix.
---data CRS a = CRS {
---      crsValues :: Vector a
---    , colIndices :: Vector Int
---    , rowIndices :: Vector Int
---    } deriving (Show)
-
--- | A dictionary of values of (row,col) order 
-data DOK = DOK (Int,Int) (Map (Int,Int) Double)
-  deriving (Show)
-
--- | A compressed row storage (CRS) sparse matrix.
-data CSC = CSC {
-      matShape :: (Int,Int)
-    , cscValues :: U.Vector Double
-    , rowIndices :: U.Vector Int
-    , colIndices :: U.Vector Int
-    } deriving (Show)
 
 data EMData = EMData {
       emAttractors :: Attractors

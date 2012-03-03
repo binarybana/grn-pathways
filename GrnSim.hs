@@ -161,10 +161,6 @@ main = do
         simRuns args p
         return ()
 
-    when (mode == "em") $ do
-        emRun args p
-        return ()
-
     when (mode == "m") $ do
         uncertaintyPrint args p
         return ()
@@ -186,4 +182,4 @@ main = do
         return ()
 
 defArgs :: Args String
-defArgs = parseArgs ArgsComplete argList "./grnsim" []
+defArgs = parseArgs ArgsComplete argList "./grnsim" ["-m","df","pws/doesntmatter.pw"]

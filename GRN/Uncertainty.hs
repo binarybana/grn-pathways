@@ -41,8 +41,6 @@ import Data.Graph.Analysis.Algorithms.Common (componentsOf)
 import Statistics.Distribution
 import Statistics.Distribution.Normal
 
-import Numeric.LBFGSB 
-
 import Graphics.Gnuplot.Simple 
 import Text.PrettyPrint
 
@@ -129,12 +127,13 @@ uncertaintyPrint args p = do
     startAtracs = runAndSplit args newks stripNodes
     norms = normSum startAtracs ms
 
-    emdat = EMData startAtracs ks stripG stripNodes norms args ms uvals
+    {-emdat = EMData startAtracs ks stripG stripNodes norms args ms uvals-}
     
     -- type fullEM :: EMData -> Int -> Theta -> [(Theta,EMData)]
-    optimumTheta = fst . head . fullEM emdat 10 $ startTheta
+    {-optimumTheta = fst . head . fullEM emdat 10 $ startTheta-}
 
-    kmaps = map (fillKentries uvals ks) (optimumTheta:hypergrid)
+    {-kmaps = map (fillKentries uvals ks) (optimumTheta:hypergrid)-}
+    kmaps = map (fillKentries uvals ks) hypergrid
     ssds = parMap rdeepseq (stripInputSSD p . simulateDOKUnif args . flip kmapToDOK 0) kmaps 
 
   writeFile "moham.dat" (pprint ssds)
@@ -142,8 +141,7 @@ uncertaintyPrint args p = do
   print $ map U.length ssds
   putStrLn ""
   print $ length ssds
-  putStrLn ""
-  print $ "Optimum Theta: " ++ show optimumTheta
+  {-print $ "Optimum Theta: " ++ show optimumTheta-}
 
   return ()
   

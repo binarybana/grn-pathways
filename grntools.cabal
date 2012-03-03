@@ -28,7 +28,7 @@ Executable GrnSim
   Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
                     regex-posix,directory,filepath,parseargs,Graphalyze,
                     random,statistics,gnuplot,vector,vector-fftw,parallel,
-                    deepseq,vector-strategies >0.1,lbfgsb,pretty,text,
+                    deepseq,vector-strategies >0.1,pretty,text,
                     math-functions
   ghc-options:
         -rtsopts
@@ -46,7 +46,7 @@ Library
     Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
                       regex-posix,directory,filepath,parseargs,Graphalyze,
                       random,statistics,gnuplot,vector,vector-fftw,parallel,
-                      deepseq,vector-strategies>0.1,lbfgsb,pretty,text,
+                      deepseq,vector-strategies>0.1,pretty,text,
                       math-functions
   Else
     Buildable: False
