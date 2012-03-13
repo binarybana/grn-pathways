@@ -54,8 +54,9 @@ splitAndSum :: (ParseData,SSD) -> Gene -> (ParseData,SSD)
 splitAndSum (pd, sd) gene = (M.delete gene pd, U.zipWith (filtSum) sp1 sp2) where
   filtSum (_,x1) (_,x2) = x1+x2 -- Have to get rid of the indices
   (sp1,sp2) = U.partition evalGene (U.indexed sd) -- Wish there was a U.ipartition
-  evalGene (ind,val) = testBit ind geneIndex 
+  evalGene (ind,val) = testBit ind (numGenes-geneIndex-1)
   geneIndex = M.findIndex gene pd
+  numGenes = M.size pd
 
 -- | Find the names of the input genes
 inputGeneNames :: ParseData -> [Gene]
