@@ -23,7 +23,6 @@ import qualified Data.Map as M
 import Data.List
 import Data.Char
 import Data.Bits
-import Data.Maybe
 import Control.Monad
 import Text.Printf
 import System.Console.ParseArgs
@@ -44,46 +43,19 @@ import Statistics.Distribution.Normal
 import Graphics.Gnuplot.Simple 
 import Text.PrettyPrint
 
+-- | Collapses SSD onto space of non-input nodes
+collapseSSD :: ParseData -> SSD -> SSD
+collapseSSD pdata orig = snd $ foldl' splitAndSum (pdata,orig) inputSet where
+  inputSet = inputGeneNames pdata
 
--- Strips nodes that violate the input node values
-stripInputNodes :: ParseData -> ColoredStateGraph -> ColoredStateGraph
-stripInputNodes pdata orig = foldr strip orig (nodes orig)
-    where   strip node gr
-                | compareBin imask ivals node = gr
-                | otherwise = delNode node gr
-            inames = sort $ inputGeneNames pdata
-            ivals = map (b2i . fromJust . knockout . fromJust . flip M.lookup pdata) inames
-            imask = inputGenes pdata
-
--- | Strips values in an SSD that correspond to those of invalid input gene
--- parameters
-stripInputSSD :: ParseData -> SSD -> SSD
-stripInputSSD pdata orig = U.ifilter notInput orig
-  where notInput ind val 
-          | compareBin imask ivals ind = True
-          | val < 0.0001 = False 
-          | otherwise = error ("None zero probability in discarded index" ++ 
-                          show ind ++ ", " ++ show val ++ ", " ++ 
-                          show imask ++ ", " ++ show ivals)
-        inames = sort $ inputGeneNames pdata
-        ivals = map (b2i . fromJust . knockout . fromJust . flip M.lookup pdata) inames
-        imask = inputGenes pdata
-
--- | Returns true if the node matches the input parameters as determined by the
--- bitmask, and the values that go in those entries
-compareBin :: [Bool] -> [Int] -> Int -> Bool
-compareBin bm vals state = snd $ foldl helper (vals,True) (zip bm (dec2bin (length bm) state))
-  where
-    helper ([],judge) _ = ([], judge)
-    helper ((x:xs),judge) (bmv, sv)
-        | not judge = ([],False)
-        | not bmv = (x:xs, True)
-        | sv /= x = ([],False)
-        | otherwise = (xs, True)
-
--- | Find the 'bitmask' for input genes
-inputGenes :: ParseData -> [Bool]
-inputGenes pdata = map (inputGene pdata) (M.keys pdata)
+-- | Partition an SSD based on the value of a gene and sum the SSD (reducing
+-- its size by 2 in the process).
+splitAndSum :: (ParseData,SSD) -> Gene -> (ParseData,SSD)
+splitAndSum (pd, sd) gene = (M.delete gene pd, U.zipWith (filtSum) sp1 sp2) where
+  filtSum (_,x1) (_,x2) = x1+x2 -- Have to get rid of the indices
+  (sp1,sp2) = U.partition evalGene (U.indexed sd) -- Wish there was a U.ipartition
+  evalGene (ind,val) = testBit ind geneIndex 
+  geneIndex = M.findIndex gene pd
 
 -- | Find the names of the input genes
 inputGeneNames :: ParseData -> [Gene]
@@ -110,37 +82,23 @@ uncertaintyPrint args p = do
 
     {-hypercorners = map (U.fromList.map fromIntegral.dec2bin n) [0..2^n-1]-}
 
-    xs = clamped [0,0.2..1]
+    xs = clamped [0,0.5,1]
+    center = replicate n 0.5
     clamped xs = map (\x-> if (x>1.0) then 1.0 else (if (x<0.0) then 0.0 else x)) xs
     grid = [[]] >>= foldr (>=>) return (replicate n (\x-> [x++[y] | y <- xs]))
-    hypergrid = map (U.fromList) grid
+    specialgrid = center : (grid \\ [center])
+    hypergrid = map (U.fromList) specialgrid
 
-    {-printList :: [U.Vector Double] -> String-}
-    {-printList x = concat $ intersperse "\n" (map (concatMap (printf "%7.3f").G.toList) $ x)-}
-
-    {---startTheta = U.fromList [0.379,0.5,1.0]-}
-    startTheta = U.replicate n 0.5
-
-    newks = fillKentries uvals ks startTheta
-    stripG = componentsOf . last . take 10.iterate stripTransNodes $ kmapToStateGraph newks
-    stripNodes = map (U.fromList.sort.nodes) stripG
-    startAtracs = runAndSplit args newks stripNodes
-    norms = normSum startAtracs ms
-
-    {-emdat = EMData startAtracs ks stripG stripNodes norms args ms uvals-}
-    
-    -- type fullEM :: EMData -> Int -> Theta -> [(Theta,EMData)]
-    {-optimumTheta = fst . head . fullEM emdat 10 $ startTheta-}
-
-    {-kmaps = map (fillKentries uvals ks) (optimumTheta:hypergrid)-}
     kmaps = map (fillKentries uvals ks) hypergrid
-    ssds = parMap rdeepseq (stripInputSSD p . simulateDOKUnif args . flip kmapToDOK 0) kmaps 
+    ssds = parMap rdeepseq (collapseSSD p . simulateDOKUnif args . flip kmapToDOK 0) kmaps 
 
   writeFile "moham.dat" (pprint ssds)
 
   print $ map U.length ssds
   putStrLn ""
   print $ length ssds
+  putStrLn ""
+  print $ map (fst . normalizeSSD) ssds
   {-print $ "Optimum Theta: " ++ show optimumTheta-}
 
   return ()

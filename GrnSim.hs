@@ -83,7 +83,7 @@ argList =
  , Arg "dmode" Nothing (Just "dmode")
     (argDataDefaulted "DMODE" ArgtypeString "m")
     "m: Matrix multiplication, g: graph"
- , Arg "prog" (Just 'p') (Just "prog")
+ , Arg "prog" (Nothing) (Just "prog")
     (argDataDefaulted "PROG" ArgtypeString "dot")
     "Graphviz Draw Program to generate output"
  , Arg "knock" (Just 'k') (Just "knock")
@@ -92,6 +92,9 @@ argList =
  , Arg "gamma" Nothing (Just "gamma") 
     (argDataDefaulted "DOUBLE" ArgtypeDouble 0.1)
     "Amount to modify edges in dataflow mode."
+ , Arg "perturb" (Just 'p') (Just "perturb") 
+    (argDataDefaulted "DOUBLE" ArgtypeDouble 0.0)
+    "In Mohammad output, set the perturbation probability."
  , Arg "input" Nothing Nothing
     (argDataRequired "FILE" ArgtypeString) "Input File."
  ]

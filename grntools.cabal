@@ -29,10 +29,11 @@ Executable GrnSim
                     regex-posix,directory,filepath,parseargs,Graphalyze,
                     random,statistics,gnuplot,vector,vector-fftw,parallel,
                     deepseq,vector-strategies >0.1,pretty,text,
-                    math-functions
+                    math-functions,mwc-random
   ghc-options:
         -rtsopts
-        ---prof -auto-all
+        ---prof
+        ---auto-all
         ---eventlog
         ---ddump-simpl-stats
         -with-rtsopts=-A16M
@@ -47,7 +48,7 @@ Library
                       regex-posix,directory,filepath,parseargs,Graphalyze,
                       random,statistics,gnuplot,vector,vector-fftw,parallel,
                       deepseq,vector-strategies>0.1,pretty,text,
-                      math-functions
+                      math-functions,mwc-random
   Else
     Buildable: False
   Exposed-Modules:  GRN.EM

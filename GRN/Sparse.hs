@@ -53,9 +53,18 @@ simulateDOK args d@(DOK (m,n) _) start = regSim (n1+n2) start
       where 
             n1 = getRequiredArg args "n1" :: Int
             n2 = getRequiredArg args "n2"
+            p = getRequiredArg args "perturb"
             csc = dokToCSC d
             regSim 0 v = v
-            regSim n v = regSim (n-1) (multiplyCSCVM csc v)
+            regSim n v
+              | p < 1e-15 = regSim (n-1) (multiplyCSCVM csc v)
+              | otherwise = regSim (n-1) 
+                  (perturb p . multiplyCSCVM csc $ v)
+
+-- | Perturb an SSD by a small amount
+perturb :: Double -> SSD -> SSD
+perturb p sd = snd . normalizeSSD $ added where
+  added = U.map (+p) sd
 
 normalizeSSD :: SSD -> (Double,SSA)
 normalizeSSD ssd = let fac=U.sum ssd in (fac, U.map (*(1/fac)) ssd)

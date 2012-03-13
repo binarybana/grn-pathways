@@ -22,6 +22,10 @@ bin2dec st = foldl' (\a x->2*a+x) 0 st
 --
 
 b2i :: Bool -> Int
-b2i x | x = 1
-      | otherwise = 0
+b2i True = 1
+b2i _ = 0
 
+i2b :: Int -> Bool
+i2b 1 = True
+i2b 0 = False
+i2b _ = error "Ternary and higher quatizations are not yet supported."
