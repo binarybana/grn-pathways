@@ -31,6 +31,10 @@ data GeneInfo = GeneInfo {
                     pathways    :: [Pathway] } deriving (Show,Eq)
 
 type ParseData = Map Gene GeneInfo
+data ParseControl = ParseControl { 
+                    pctargets :: [(Gene,Double)]
+                  , pccontrols :: [Gene] 
+                  } deriving (Show, Eq)
 
 data NodeInfo = NodeInfo String Double
 data EdgeInfo = EdgeInfo Double Double

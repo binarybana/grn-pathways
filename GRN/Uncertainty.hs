@@ -83,7 +83,7 @@ uncertaintyPrint args p = do
 
     {-hypercorners = map (U.fromList.map fromIntegral.dec2bin n) [0..2^n-1]-}
 
-    xs = clamped [0,0.5,1]
+    xs = clamped [0,0.2..1]
     center = replicate n 0.5
     clamped xs = map (\x-> if (x>1.0) then 1.0 else (if (x<0.0) then 0.0 else x)) xs
     grid = [[]] >>= foldr (>=>) return (replicate n (\x-> [x++[y] | y <- xs]))

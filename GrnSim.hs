@@ -79,7 +79,7 @@ argList =
     (argDataRequired "MODE" ArgtypeString)
     ("s:state transition graph, ss:state transition matrix, p:pathway diagram, \
     \sm:modified stg, d:density estimation, em:expectation maximization, \
-    \m:Mohammad output, df: DataFlow")
+    \m:Mohammad output, df: DataFlow, c: Control")
  , Arg "dmode" Nothing (Just "dmode")
     (argDataDefaulted "DMODE" ArgtypeString "m")
     "m: Matrix multiplication, g: graph"
@@ -108,10 +108,9 @@ main = do
         n2 = getRequiredArg args "n2" :: Int
         mode = getRequiredArg args "mode"
         gen = gotArg args "generate"
-        modes = ["s","p","sm","d","ss","em","m","df"]
+        modes = ["s","p","sm","d","ss","em","m","df","c"]
     if (length (modes\\[mode]) == length mode)
-        then error $ usageError args ("Choose a mode: s-state, p-pathway, "
-            ++ "sm-state modified, d-density estimation.")
+        then error $ usageError args ("Choose a valid mode.")
         else return ()
     con <- readFile inFile 
     let start = parsePW $ con ++ (unlines.words $ getRequiredArg args "extra2")
@@ -149,14 +148,18 @@ main = do
             (DOK (n,_) m) = initm
         mapM_ (printf "%7s") (M.keys p)
         putStrLn ""
-        --print $ maximum $ map (snd) $ M.keys m
-        --print $ G.length $ colIndices $ dokToCSC initm
-        --print $ G.length $ rowIndices $ dokToCSC initm
-        --print $ G.length $ cscValues $ dokToCSC initm
-        {-print $ finalSSD-}
         printSSA $ ssdToSSA finalSSD
-        --Cant draw a graph when we have a matrix... well we could, but we'd
-        --have to convert:
+        when gen $ drawDataFlow graph args
+        return ()
+
+    when (mode == "c") $ do
+        let initm = parseToDataFlow args p
+            finalSSD = simulateDOKUnif args initm
+            graph = convertProbsVG finalSSD $ dataFlowToGraph initm
+            (DOK (n,_) m) = initm
+        mapM_ (printf "%7s") (M.keys p)
+        putStrLn ""
+        printSSA $ ssdToSSA finalSSD
         when gen $ drawDataFlow graph args
         return ()
 

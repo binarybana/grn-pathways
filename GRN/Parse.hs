@@ -19,7 +19,7 @@ import Text.Parsec.String
 import Text.ParserCombinators.Parsec.Char
 import Text.Parsec.Token
 import Numeric
-import Control.Applicative ((<$),empty)
+import Control.Applicative ((<$),empty,(<*))
 import Control.Monad
 import Data.Maybe
 import qualified Data.Map as M
@@ -46,6 +46,7 @@ parseLine = do
 ss = skipMany space
 tillNext = skipMany (noneOf "\n") >> ss
 comment = ss >> char '#' >> tillNext
+geneID = (many1 $ noneOf "#-&<>=: \n") <?> "GeneID"
 p_float :: CharParser () Double
 p_float = do  s<- getInput
               case readSigned readFloat s of
@@ -67,7 +68,6 @@ deps = do
 paths :: Parser (Maybe ParseLine)
 paths = do
         let ampSep = try (ss >> string "&&" >> ss)
-            geneID = (many1 $ noneOf "#-& \n") <?> "GeneID"
         gpre <- sepBy1 geneID ampSep
         ss
         char '-'
@@ -123,6 +123,7 @@ parseText = do ss
                ss
                return (catMaybes plines)
 
+
 parsePW :: String -> ParseData
 parsePW input = foldr (\f dict -> foldr f dict plines) initMap dataLayers
         where   
@@ -137,3 +138,28 @@ fileNamePW :: FilePath -> IO ParseData
 fileNamePW filename = do
         con <- readFile filename
         return $ parsePW con
+
+parseControlText :: Parser ParseControl
+parseControlText = do 
+        ss
+        manyTill anyChar (try (string "<control>"))
+        ss
+        targets <- between (string "<targets>" >> ss) (string "</targets>" >> ss) $ many1 $ do 
+          g <- geneID
+          ss
+          char '='
+          m <- p_float
+          ss
+          return (g,m)
+        controls <- between (string "<controls>" >> ss) (string "</controls>" >> ss) $ many1 (geneID <* ss)
+        string "</control>"
+        ss
+        return ParseControl { pctargets = targets, pccontrols = controls }
+
+parseControl :: String -> ParseControl
+parseControl input = pcontrol
+    where   
+        pcontrol = case parse parseControlText "Input Control text" input of
+                    Left err -> error ("Parsing control error: " ++ (show err))
+                    Right ret -> ret
+
