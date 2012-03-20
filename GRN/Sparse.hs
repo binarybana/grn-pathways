@@ -118,6 +118,9 @@ calcSSAsDOK args p ks = zipNames . allgenes . ssaVec . simVec $ seedList
     zipNames :: V.Vector (U.Vector Double) -> M.Map Gene (U.Vector Double)
     zipNames xv = M.fromList $ zip (M.keys p) (G.toList xv)
 
+-- | Expands out all determistic networks for a given likelihood network.
+-- Number of networks grows superexponentially as (N+1)^(2^N) 
+-- ie. 4, 81, 65536, 1.5e11...
 weightedExpansion :: DOK -> V.Vector (Double, CSR)
 weightedExpansion dk@(DOK (m,n) _) = wtdlist where
   csr = toCSR dk

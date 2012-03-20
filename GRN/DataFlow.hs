@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, RecordWildCards #-}
 -- |
 -- Module    : GRN.DataFlow
 -- Copyright : (c) 2011 Jason Knight
@@ -27,6 +27,7 @@ import Control.Parallel.Strategies
 
 import System.Cmd
 import Control.Monad
+import Control.Applicative 
 import Data.List
 import Data.Bits
 import Data.Ord (comparing)
@@ -113,9 +114,82 @@ dataFlowToGraph (DOK (n,m) mat) = mkGraph permedNodeStates edges where
       zip intStates (map (\x->NodeInfo x (1.0/(fromIntegral n))) stringStates)
   edges = map (\((st1,st2),wt) -> (st1,st2,EdgeInfo 0.0 wt)) $ M.assocs mat
 
+--type ControlPolicy = ControlPolicy [(Gene,Bool)]
+--data GeneInfo = GeneInfo {
+--                    name        :: Gene,
+--                    knockout    :: Maybe Bool,
+--                    measurement :: Maybe Double,
+--                    depends     :: [Gene],
+--                    pathways    :: [Pathway] } deriving (Show,Eq)
+--
+--type ParseData = Map Gene GeneInfo
+--data ParseControl = ParseControl { 
+--                    pctargets :: [(Gene,Double)]
+--                  , pccontrols :: [Gene] 
+--                  } deriving (Show, Eq)
+calcCost :: Args String -> ParseData -> ParseControl -> CSR -> Double
+calcCost pargs pdata ParseControl{..} net = sum diffs where
+  simSSD = simulateDOKUnif pargs (toDOK net)
+  simSSA = ssdToSSA simSSD
+  controlNames = map fst pctargets
+  filtSSA = filter (\(gene,val) -> gene `elem` controlNames) (zip (M.keys pdata) (G.toList simSSA))
+  diffs = zipWith (\(_,val1) (_,val2)-> (val1 - val2)**2) filtSSA pctargets
+
+exactControlPolicy :: Args String -> ParseData -> ParseControl -> ControlPolicy
+exactControlPolicy pargs pdata pc@ParseControl{..} = [minPolicy] where
+  targs = pctargets 
+  conts = pccontrols
+  numConts = length conts
+  corners = [0..2^numConts-1]
+  policies = (,) <$> conts <*> [True,False]  --lets assume single gene control for the moment
+  -- to do all combinations, we would then want the power set of policies...
+  -- wow
+  pdatas = map (\(gene,val)-> M.adjust (\gi->gi{knockout=Just val}) gene pdata) policies
+  -- For each policy, generate a new parsedata with that gene knocked out 
+  dataFlows = map (parseToDataFlow pargs) pdatas
+  expanses = map weightedExpansion dataFlows
+  expansesWithPD = zip pdatas expanses
+  controlPols = map 
+    (\(pd, nets) -> V.map (\(val,net)-> val * calcCost pargs pd pc net) nets) expansesWithPD
+  weightedCosts = map (V.sum) controlPols
+  minPolicyIndex = head . elemIndices (minimum weightedCosts) $ weightedCosts
+  minPolicy = policies !! minPolicyIndex
+
+-- Generate 2*n weighted expansions (or samplings) for each of the n control
+-- genes (for single gene stationary control), then calculate the costs for 
+-- each of these, then take an n-way 'zip'
+-- and determine control policy for each network (they should all be the same
+-- right?) and the robust policy.
+--
+-- make sure and error on deterministic knockout policy, as only  a stochastic
+-- knockout policy will preserve the total network
+--
+-- When sampling these won't be the same however... hmm what should we do then?
+-- we'll worry about that when we get there. I think I can probably use the
+-- same starting seed for each one and get the same sequence of networks
+-- (again, as long as I am using complete hamming networks I should be fine).
+
+simControl :: Args String -> ParseData -> ParseControl -> IO ()
+simControl pargs pdata pcon = do
+        let pol = exactControlPolicy pargs pdata pcon
+            {-we = weightedExpansion (parseToDataFlow pargs pdata)-}
+        print pol
+        {-print $ sort . V.toList . fst . V.unzip $ we-}
+        return ()
+            
+            {-robustPol = robustPolicy controlPols-}
+
+            {-finalSSD = simulateDOKUnif args initm-}
+            {-graph = convertProbsVG finalSSD $ dataFlowToGraph initm-}
+            {-(DOK (n,_) m) = initm-}
+        {-mapM_ (printf "%7s") (M.keys p)-}
+        {-putStrLn ""-}
+        {-printSSA $ ssdToSSA finalSSD-}
+        {-when gen $ drawDataFlow graph args-}
+        {-return ()-}
+
 test :: Args String -> String -> IO DOK
 test args x = do
   con <- fileNamePW x
   let dk = parseToDataFlow args con
   return dk
-

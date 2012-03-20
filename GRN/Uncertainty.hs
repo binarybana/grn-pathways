@@ -68,6 +68,26 @@ inputGene pdata g = null $ depends gi
   where
     Just gi = M.lookup g pdata
 
+computeSSD :: IO ()
+computeSSD = do
+    let r file = liftM (U.fromList . head . read) $ readFile file :: IO (U.Vector Double)
+    con1a <- r "moham_100.dat"
+    con1b <- r "moham_111.dat"
+
+    con2a <- r "moham_111.dat"
+    con2b <- r "moham_101.dat"
+
+    con3a <- r "moham_x1x.dat"
+    con3b <- r "moham_1xx.dat"
+
+    let ssd1 = U.sum . U.zipWith (\x y->(min x y)*0.5) con1a $ con1b
+        ssd2 = U.sum . U.zipWith (\x y->(min x y)*0.5) con2a $ con2b
+        ssd3 = U.sum . U.zipWith (\x y->(min x y)*0.5) con3a $ con3b
+
+    print ssd1
+    print ssd2
+    print ssd3
+
 uncertaintyPrint :: Args String -> ParseData -> IO () 
 uncertaintyPrint args p = do
   let
@@ -83,7 +103,7 @@ uncertaintyPrint args p = do
 
     {-hypercorners = map (U.fromList.map fromIntegral.dec2bin n) [0..2^n-1]-}
 
-    xs = clamped [0,0.2..1]
+    xs = clamped [0,0.5,1]
     center = replicate n 0.5
     clamped xs = map (\x-> if (x>1.0) then 1.0 else (if (x<0.0) then 0.0 else x)) xs
     grid = [[]] >>= foldr (>=>) return (replicate n (\x-> [x++[y] | y <- xs]))
@@ -94,12 +114,13 @@ uncertaintyPrint args p = do
     ssds = parMap rdeepseq (collapseSSD p . simulateDOKUnif args . flip kmapToDOK 0) kmaps 
 
   writeFile "moham.dat" (pprint ssds)
+  {-plotList [] (U.toList . head $ ssds)-}
 
-  print $ map U.length ssds
-  putStrLn ""
+  {-print $ map U.length ssds-}
+  {-putStrLn ""-}
   print $ length ssds
   putStrLn ""
-  print $ map (fst . normalizeSSD) ssds
+  {-print $ map (fst . normalizeSSD) ssds-}
   {-print $ "Optimum Theta: " ++ show optimumTheta-}
 
   return ()

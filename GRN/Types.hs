@@ -41,6 +41,9 @@ data EdgeInfo = EdgeInfo Double Double
 type ColoredStateGraph = Gr NodeInfo EdgeInfo
 type DirectedGraph = Gr String String
 
+-- | Right now we're assuming a stationary control policy
+type ControlPolicy = [(Gene,Bool)]
+
 instance NFData SSA where
     rnf vec = seq vec ()
 

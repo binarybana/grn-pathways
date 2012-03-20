@@ -22,6 +22,7 @@ import Numeric
 import Control.Applicative ((<$),empty,(<*))
 import Control.Monad
 import Data.Maybe
+import Data.List
 import qualified Data.Map as M
 
 
@@ -37,6 +38,9 @@ dataLayers = [addPath, addKnock, addMeasure]
 parseLayers :: [Parser (Maybe ParseLine)]
 parseLayers = [deps, paths, knocks, measurements]
 
+-- FIXME TODO: Does not handle the control section at the bottom
+-- well. In fact, everything below a control section is lost... 
+-- mysteriously...
 parseLine :: Parser (Maybe ParseLine)
 parseLine = do
     ss
@@ -154,7 +158,7 @@ parseControlText = do
         controls <- between (string "<controls>" >> ss) (string "</controls>" >> ss) $ many1 (geneID <* ss)
         string "</control>"
         ss
-        return ParseControl { pctargets = targets, pccontrols = controls }
+        return ParseControl { pctargets = sort $ targets, pccontrols = sort $ controls }
 
 parseControl :: String -> ParseControl
 parseControl input = pcontrol

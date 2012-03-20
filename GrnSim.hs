@@ -87,7 +87,7 @@ argList =
     (argDataDefaulted "PROG" ArgtypeString "dot")
     "Graphviz Draw Program to generate output"
  , Arg "knock" (Just 'k') (Just "knock")
-    (argDataDefaulted "KNOCK" ArgtypeString "det")
+    (argDataDefaulted "KNOCK" ArgtypeString "stoch")
     "Knockouts in Dataflow mode: det(erministic), stoch(astic)"
  , Arg "gamma" Nothing (Just "gamma") 
     (argDataDefaulted "DOUBLE" ArgtypeDouble 0.1)
@@ -113,8 +113,8 @@ main = do
         then error $ usageError args ("Choose a valid mode.")
         else return ()
     con <- readFile inFile 
-    let start = parsePW $ con ++ (unlines.words $ getRequiredArg args "extra2")
-        p = parsePW $ con ++ (unlines.words $ getRequiredArg args "extra")
+    let start = parsePW $ (unlines.words $ getRequiredArg args "extra2") ++ con
+        p = parsePW $ (unlines.words $ getRequiredArg args "extra") ++ con 
 
     when (mode == "s") $ do
         let initg = kmapToStateGraph.buildKmaps $ p
@@ -153,15 +153,8 @@ main = do
         return ()
 
     when (mode == "c") $ do
-        let initm = parseToDataFlow args p
-            finalSSD = simulateDOKUnif args initm
-            graph = convertProbsVG finalSSD $ dataFlowToGraph initm
-            (DOK (n,_) m) = initm
-        mapM_ (printf "%7s") (M.keys p)
-        putStrLn ""
-        printSSA $ ssdToSSA finalSSD
-        when gen $ drawDataFlow graph args
-        return ()
+        let pcon = parseControl con
+        simControl args p pcon
 
     when (mode == "d") $ do
         simRuns args p
