@@ -127,6 +127,7 @@ dataFlowToGraph (DOK (n,m) mat) = mkGraph permedNodeStates edges where
 --                    pctargets :: [(Gene,Double)]
 --                  , pccontrols :: [Gene] 
 --                  } deriving (Show, Eq)
+--
 calcCost :: Args String -> ParseData -> ParseControl -> CSR -> Double
 calcCost pargs pdata ParseControl{..} net = sum diffs where
   simSSD = simulateDOKUnif pargs (toDOK net)
@@ -135,25 +136,29 @@ calcCost pargs pdata ParseControl{..} net = sum diffs where
   filtSSA = filter (\(gene,val) -> gene `elem` controlNames) (zip (M.keys pdata) (G.toList simSSA))
   diffs = zipWith (\(_,val1) (_,val2)-> (val1 - val2)**2) filtSSA pctargets
 
-exactControlPolicy :: Args String -> ParseData -> ParseControl -> ControlPolicy
-exactControlPolicy pargs pdata pc@ParseControl{..} = [minPolicy] where
-  targs = pctargets 
-  conts = pccontrols
-  numConts = length conts
-  corners = [0..2^numConts-1]
-  policies = (,) <$> conts <*> [True,False]  --lets assume single gene control for the moment
-  -- to do all combinations, we would then want the power set of policies...
-  -- wow
-  pdatas = map (\(gene,val)-> M.adjust (\gi->gi{knockout=Just val}) gene pdata) policies
+enumSinglePolicies :: [Gene] -> [ControlPolicy]
+enumSinglePolicies conts = map (:[]) $ (,) <$> conts <*> [True,False]
+--lets assume single gene control for the moment
+-- to do all combinations, we would then want the power set of policies...
+-- wow
+
+policyExpansions :: Args String -> ParseData -> ParseControl -> [(ControlPolicy,V.Vector (Double,CSR))]
+policyExpansions pargs pdata pc@ParseControl{..} = zip policies expanses where
+  policies = enumSinglePolicies pccontrols
+  pdatas = map ((\(gene,val)-> M.adjust (\gi->gi{knockout=Just val}) gene pdata) . head) policies
   -- For each policy, generate a new parsedata with that gene knocked out 
+  -- TODO FIXME will only work with single policies
   dataFlows = map (parseToDataFlow pargs) pdatas
   expanses = map weightedExpansion dataFlows
-  expansesWithPD = zip pdatas expanses
-  controlPols = map 
-    (\(pd, nets) -> V.map (\(val,net)-> val * calcCost pargs pd pc net) nets) expansesWithPD
-  weightedCosts = map (V.sum) controlPols
-  minPolicyIndex = head . elemIndices (minimum weightedCosts) $ weightedCosts
-  minPolicy = policies !! minPolicyIndex
+
+policyCosts :: Args String -> ParseData -> ParseControl -> [(ControlPolicy,Double)]
+policyCosts pargs pdata pc@ParseControl{..} = weightedCosts where
+  expansesWithPols = policyExpansions pargs pdata pc
+  weight (cp, vec) = (cp, V.sum . V.map (\(val,net) -> val * calcCost pargs pdata pc net) $ vec)
+  weightedCosts = map weight expansesWithPols
+
+exactControlPolicy :: Args String -> ParseData -> ParseControl -> ControlPolicy
+exactControlPolicy pargs pdata pc =  fst . minimumBy (comparing snd) . policyCosts pargs pdata $ pc
 
 -- Generate 2*n weighted expansions (or samplings) for each of the n control
 -- genes (for single gene stationary control), then calculate the costs for 
@@ -168,14 +173,29 @@ exactControlPolicy pargs pdata pc@ParseControl{..} = [minPolicy] where
 -- we'll worry about that when we get there. I think I can probably use the
 -- same starting seed for each one and get the same sequence of networks
 -- (again, as long as I am using complete hamming networks I should be fine).
+-- but even using the same seed they will be different network draws.
 
-simControl :: Args String -> ParseData -> ParseControl -> IO ()
+simControl :: Args String -> ParseData -> ParseControl -> IO DOK
 simControl pargs pdata pcon = do
         let pol = exactControlPolicy pargs pdata pcon
-            {-we = weightedExpansion (parseToDataFlow pargs pdata)-}
+            we = policyExpansions pargs pdata pcon 
+            pols = fst . unzip $ we
+            ind = head $ elemIndices pol pols
+            {-(parseToDataFlow pargs pdata)-}
+        putStr "Policy: "
         print pol
+        putStrLn""
+        putStr "Using policy: "
+        print $ pols !! ind
+        putStrLn ""
+        putStr "All polices: "
+        print $ fst . unzip $ we
+        putStrLn ""
+        putStrLn ""
+        print $ policyCosts pargs pdata pcon
+
         {-print $ sort . V.toList . fst . V.unzip $ we-}
-        return ()
+        return $ toDOK . snd .  head . reverse . sortBy (comparing fst) . V.toList . snd $ we !! ind
             
             {-robustPol = robustPolicy controlPols-}
 

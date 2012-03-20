@@ -22,6 +22,7 @@ import GRN.Sparse
 import GRN.EM
 import GRN.Uncertainty
 import GRN.DataFlow
+import GRN.Utils
 
 import qualified Data.Map as M
 import Data.List
@@ -154,7 +155,17 @@ main = do
 
     when (mode == "c") $ do
         let pcon = parseControl con
-        simControl args p pcon
+            
+        net <- simControl args p pcon
+
+        let finalSSD = simulateDOKUnif args net
+            graph = dataFlowToGraph net
+        mapM_ (printf "%7s") (M.keys p)
+        putStrLn ""
+        printSSA $ ssdToSSA finalSSD
+        when gen $ drawDataFlow graph args
+        return ()
+
 
     when (mode == "d") $ do
         simRuns args p

@@ -8,8 +8,14 @@
 -- Portability : portable
 -- 
 
-module GRN.Utils (dec2bin, bin2dec, b2i) where
+module GRN.Utils (
+    dec2bin
+  , bin2dec
+  , b2i
+  , chunks) where
+
 import Data.List
+import qualified Data.Vector as V
 
 dec2bin :: Int -> Int -> [Int]
 dec2bin len y = (replicate (len-(length res)) 0) ++ res -- need to add padding
@@ -29,3 +35,9 @@ i2b :: Int -> Bool
 i2b 1 = True
 i2b 0 = False
 i2b _ = error "Ternary and higher quatizations are not yet supported."
+
+chunks :: Int -> V.Vector a -> V.Vector (V.Vector a)
+chunks n x = case V.splitAt n x of
+              (a,b) | V.null a -> V.empty
+                    | otherwise -> V.cons a (chunks n b)
+

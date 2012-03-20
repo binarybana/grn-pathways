@@ -131,14 +131,9 @@ weightedExpansion dk@(DOK (m,n) _) = wtdlist where
   cartesian = G.sequence . chunks perrow . G.convert $ cols
   cartvals = G.map G.product . G.sequence . chunks perrow . G.convert $ vals
   newnnz = G.length . G.head $ cartesian
-  newrows = U.enumFromN 0 newnnz
+  newrows = U.enumFromN 0 (newnnz+1) --NOTE the +1 here
   newvals = U.replicate newnnz 1.0
   wtdlist = V.zip cartvals (G.map (\x -> CSR (m,n) newvals (G.convert x) newrows) cartesian)
-
-chunks :: Int -> V.Vector a -> V.Vector (V.Vector a)
-chunks n x = case V.splitAt n x of
-              (a,b) | V.null a -> V.empty
-                    | otherwise -> V.cons a (chunks n b)
 
 getNSamples :: Int -> DOK -> IO (V.Vector (Double,CSR))
 getNSamples samps dk@(DOK (m,n) _) = do
@@ -151,7 +146,7 @@ getNSamples samps dk@(DOK (m,n) _) = do
     wtdvals = G.convert $ G.zip vals cols
     rowchunks = chunks perrow $ wtdvals
     newnnz = G.length rowchunks 
-    newrows = U.enumFromN 0 newnnz
+    newrows = U.enumFromN 0 (newnnz+1) --NOTE +1 here
     newvals = U.replicate newnnz 1.0
     go gen = do
       unifs <- uniformVector gen m :: IO (V.Vector Double)
