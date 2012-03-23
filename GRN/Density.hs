@@ -86,7 +86,7 @@ simRuns args p = do
     titleAll = zip titles
     prepForPlot = titleAll.map (G.toList.G.zip points.snd).M.toList
     ks = buildKmaps p 
-    dm = getRequiredArg args "dmode" -- Number of simruns
+    dm = getRequiredArg args "submode" -- Number of simruns
 
     vals = concatMap (\(Kmap _ _ x)->M.elems x) (M.elems ks)
     unknowns = [C x | C x <- vals] ++ [X | X <- vals]

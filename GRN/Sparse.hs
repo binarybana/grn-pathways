@@ -52,7 +52,7 @@ simulateDOK :: Args String -> DOK -> SSD -> SSD
 simulateDOK args d@(DOK (m,n) _) start = regSim (n1+n2) start
       where 
             n1 = getRequiredArg args "n1" :: Int
-            n2 = getRequiredArg args "n2"
+            n2 = getRequiredArg args "n2" :: Int
             p = getRequiredArg args "perturb"
             csc = dokToCSC d
             regSim 0 v = v
@@ -73,7 +73,7 @@ simulateCSC :: Args String -> CSC -> SSD -> SSD
 simulateCSC args csc start = regSim (n1+n2) start
       where 
             n1 = getRequiredArg args "n1" :: Int 
-            n2 = getRequiredArg args "n2"
+            n2 = getRequiredArg args "n2" :: Int
             avg = getRequiredArg args "avg" :: Int
             --norm xv = let fac = (U.sum xv) in (fac,U.map (*(1/fac)) xv)
             regSim 0 v = v

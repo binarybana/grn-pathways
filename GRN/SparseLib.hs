@@ -24,7 +24,7 @@ import Data.List (group, groupBy, sortBy)
 
 -- | A dictionary of values of (row,col) order 
 data DOK = DOK (Int,Int) (M.Map (Int,Int) Double)
-  deriving (Show,Eq)
+  deriving (Show,Eq,Ord)
 
 -- | A compressed row storage (CSR) sparse matrix.
 data CSR = CSR {
@@ -32,7 +32,7 @@ data CSR = CSR {
     , csrValues :: U.Vector Double
     , csrcolIndices :: U.Vector Int
     , csrrowIndices :: U.Vector Int
-    } deriving (Show,Eq)
+    } deriving (Show,Eq,Ord)
 
 -- | A compressed column storage (CSC) sparse matrix.
 data CSC = CSC {
@@ -40,7 +40,7 @@ data CSC = CSC {
     , cscValues :: U.Vector Double -- Values
     , cscrowIndices :: U.Vector Int -- length = nnz, 
     , csccolIndices :: U.Vector Int -- length = ncols+1
-    } deriving (Show,Eq)
+    } deriving (Show,Eq,Ord)
 
 class SparseMatrix a where
   toCSC :: a -> CSC

@@ -17,6 +17,7 @@ import GRN.Parse
 import GRN.Types
 import GRN.Utils
 import GRN.Sparse
+import GRN.Render
 
 import qualified Data.Vector as V
 import qualified Data.Vector.Generic as G
@@ -28,30 +29,19 @@ import Control.Parallel.Strategies
 import System.Cmd
 import Control.Monad
 import Control.Applicative 
+import Control.Arrow
 import Data.List
 import Data.Bits
 import Data.Ord (comparing)
 import Data.Maybe
 import qualified Data.Map as M
+import qualified Data.Set as S
 import Text.Printf
 import System.Environment
 import System.Console.ParseArgs
 import Data.Graph.Analysis 
 import System.Random
 import System.IO.Unsafe
-
-
-{-type ParseData = Map Gene GeneInfo-}
-{-type Gene = String-}
-{-data Pathway = Pathway [Gene] Bool Bool [Gene] deriving (Show,Eq)-}
-
---data GeneInfo = GeneInfo {
---                    name        :: Gene,
---                    knockout    :: Maybe Bool,
---                    measurement :: Maybe Double,
---                    depends     :: [Gene],
---                    pathways    :: [Pathway] } deriving (Show,Eq)
---
 
 parseToDataFlow :: Args String -> ParseData -> DOK
 parseToDataFlow args p = DOK (nStates,nStates) (M.fromList $ V.toList $ V.concatMap id pathPass)
@@ -142,18 +132,17 @@ enumSinglePolicies conts = map (:[]) $ (,) <$> conts <*> [True,False]
 -- to do all combinations, we would then want the power set of policies...
 -- wow
 
-policyExpansions :: Args String -> ParseData -> ParseControl -> [(ControlPolicy,V.Vector (Double,CSR))]
-policyExpansions pargs pdata pc@ParseControl{..} = zip policies expanses where
+policyExpansions :: Args String -> ParseData -> ParseControl -> [(ControlPolicy,DOK)]
+policyExpansions pargs pdata pc@ParseControl{..} = zip policies dataFlows where
   policies = enumSinglePolicies pccontrols
+  -- TODO FIXME will only work with single policies
   pdatas = map ((\(gene,val)-> M.adjust (\gi->gi{knockout=Just val}) gene pdata) . head) policies
   -- For each policy, generate a new parsedata with that gene knocked out 
-  -- TODO FIXME will only work with single policies
   dataFlows = map (parseToDataFlow pargs) pdatas
-  expanses = map weightedExpansion dataFlows
 
 policyCosts :: Args String -> ParseData -> ParseControl -> [(ControlPolicy,Double)]
 policyCosts pargs pdata pc@ParseControl{..} = weightedCosts where
-  expansesWithPols = policyExpansions pargs pdata pc
+  expansesWithPols = map (id *** weightedExpansion) $ policyExpansions pargs pdata pc
   weight (cp, vec) = (cp, V.sum . V.map (\(val,net) -> val * calcCost pargs pdata pc net) $ vec)
   weightedCosts = map weight expansesWithPols
 
@@ -175,27 +164,48 @@ exactControlPolicy pargs pdata pc =  fst . minimumBy (comparing snd) . policyCos
 -- (again, as long as I am using complete hamming networks I should be fine).
 -- but even using the same seed they will be different network draws.
 
-simControl :: Args String -> ParseData -> ParseControl -> IO DOK
-simControl pargs pdata pcon = do
-        let pol = exactControlPolicy pargs pdata pcon
-            we = policyExpansions pargs pdata pcon 
-            pols = fst . unzip $ we
-            ind = head $ elemIndices pol pols
-            {-(parseToDataFlow pargs pdata)-}
-        putStr "Policy: "
-        print pol
-        putStrLn""
-        putStr "Using policy: "
-        print $ pols !! ind
-        putStrLn ""
-        putStr "All polices: "
-        print $ fst . unzip $ we
-        putStrLn ""
-        putStrLn ""
-        print $ policyCosts pargs pdata pcon
+uniqueSamples :: V.Vector (Double,CSR) -> V.Vector (Double,CSR)
+uniqueSamples = V.fromList . S.toList . S.fromList . V.toList
 
-        {-print $ sort . V.toList . fst . V.unzip $ we-}
-        return $ toDOK . snd .  head . reverse . sortBy (comparing fst) . V.toList . snd $ we !! ind
+printFact :: Show a => String -> a -> IO()
+printFact str a = do
+  putStr str
+  print a
+  putStrLn ""
+
+printStats :: [ControlPolicy] -> [V.Vector (Double,CSR)] -> IO ()
+printStats pols nets = do
+  printFact "Number of policies: " (length pols)
+  printFact "Number of networks: " (map V.length nets)
+  printFact "Number of unique networks: " (map (V.length . uniqueSamples) nets)
+  
+simControl :: Args String -> ParseData -> ParseControl -> IO ()
+simControl pargs pdata pcon = do
+        -- "Ghetto rigg!!!"
+        let method = getRequiredArg pargs "submode"
+
+        when (method == "e") $ do
+          let (pols,likelynets) = unzip $ policyExpansions pargs pdata pcon
+              expanded = map (weightedExpansion) likelynets
+          printStats pols expanded
+
+          return ()
+
+        when (method=="s") $ do
+          let n4 = getRequiredArg pargs "n4"
+              (pols,likelynets) = unzip $ policyExpansions pargs pdata pcon
+          if n4==0 then print "Error: You must have at least 1 sample with n4." else return ()
+
+          samples <- mapM (getNSamples n4) likelynets
+          printStats pols samples
+
+          {-let gen = gotArg pargs "generate"-}
+          {-let finalSSD = simulateDOKUnif pargs net-}
+              {-graph = dataFlowToGraph net-}
+          {-when gen $ drawDataFlow graph pargs-}
+          return ()
+
+            {-(parseToDataFlow pargs pdata)-}
             
             {-robustPol = robustPolicy controlPols-}
 
@@ -206,7 +216,6 @@ simControl pargs pdata pcon = do
         {-putStrLn ""-}
         {-printSSA $ ssdToSSA finalSSD-}
         {-when gen $ drawDataFlow graph args-}
-        {-return ()-}
 
 test :: Args String -> String -> IO DOK
 test args x = do

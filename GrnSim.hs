@@ -67,23 +67,25 @@ argList =
     (argDataDefaulted "INT" ArgtypeInt 15)
     "First elimination (reduction) pass amount"
  , Arg "n2" Nothing (Just "n2")
-    (argDataDefaulted "INT" ArgtypeInt 140)
-    "Second pass (only simulation) amount"
+    (argDataDefaulted "INT" ArgtypeInt 150)
+    "Second pass (only simulation) amount. "
  , Arg "n3" Nothing (Just "n3")
     (argDataDefaulted "INT" ArgtypeInt 140)
     "Runs for Density estimation ignored if m!=d"
  , Arg "n4" Nothing (Just "n4")
     (argDataDefaulted "INT" ArgtypeInt 0)
     ("If mode=d, then this is the seed, otherwise 0:deterministic equal valued "++
-    "outgoing edge probabilities.")
+    "outgoing edge probabilities. Also number of samples in \
+    \sampling dataflow mode.")
  , Arg "mode" (Just 'm') (Just "mode")
     (argDataRequired "MODE" ArgtypeString)
     ("s:state transition graph, ss:state transition matrix, p:pathway diagram, \
     \sm:modified stg, d:density estimation, em:expectation maximization, \
     \m:Mohammad output, df: DataFlow, c: Control")
- , Arg "dmode" Nothing (Just "dmode")
-    (argDataDefaulted "DMODE" ArgtypeString "m")
-    "m: Matrix multiplication, g: graph"
+ , Arg "submode" Nothing (Just "submode")
+    (argDataDefaulted "SUBMODE" ArgtypeString "m")
+    "m: Matrix multiplication, g: graph, \ 
+    \When control: e: exact, s: sampling."
  , Arg "prog" (Nothing) (Just "prog")
     (argDataDefaulted "PROG" ArgtypeString "dot")
     "Graphviz Draw Program to generate output"
@@ -120,6 +122,9 @@ main = do
     when (mode == "s") $ do
         let initg = kmapToStateGraph.buildKmaps $ p
             finalGraph = simulate args initg
+        if (n1+n2 < 50) then print "WARNING: Number of simulation iterations \
+        \less than 50. Please consider increasing n1 or n2. Also consider \
+        \using the far superior 'ss' method for simulation." else return ()
         mapM_ (printf "%7s") (M.keys p)
         putStrLn ""
         printSSA $ genSSA finalGraph
@@ -155,17 +160,8 @@ main = do
 
     when (mode == "c") $ do
         let pcon = parseControl con
-            
-        net <- simControl args p pcon
-
-        let finalSSD = simulateDOKUnif args net
-            graph = dataFlowToGraph net
-        mapM_ (printf "%7s") (M.keys p)
-        putStrLn ""
-        printSSA $ ssdToSSA finalSSD
-        when gen $ drawDataFlow graph args
+        simControl args p pcon
         return ()
-
 
     when (mode == "d") $ do
         simRuns args p
