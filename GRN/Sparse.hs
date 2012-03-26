@@ -120,7 +120,8 @@ calcSSAsDOK args p ks = zipNames . allgenes . ssaVec . simVec $ seedList
 
 -- | Expands out all determistic networks for a given likelihood network.
 -- Number of networks grows superexponentially as (N+1)^(2^N) 
--- ie. 4, 81, 65536, 1.5e11...
+-- ie. for n={1-6}: 4, 81, 65536, 1.5e11 (100 billion), 8e24 (8 septillion), 1.2e54 (1.2
+-- septendecillion)...
 weightedExpansion :: DOK -> V.Vector (Double, CSR)
 weightedExpansion dk@(DOK (m,n) _) = wtdlist where
   csr = toCSR dk

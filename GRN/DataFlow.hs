@@ -178,6 +178,7 @@ printStats pols nets = do
   printFact "Number of policies: " (length pols)
   printFact "Number of networks: " (map V.length nets)
   printFact "Number of unique networks: " (map (V.length . uniqueSamples) nets)
+  printFact "Fraction of Sampled Space: " (map (V.sum . fst . V.unzip . uniqueSamples) nets)
   
 simControl :: Args String -> ParseData -> ParseControl -> IO ()
 simControl pargs pdata pcon = do

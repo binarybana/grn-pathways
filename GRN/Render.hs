@@ -48,8 +48,6 @@ labelFn (_, (NodeInfo name prob)) = [Label . StrLabel . pack $ name, FillColor $
           clamp x = if x>1 then 1 else if x<0 then 0 else x
 
 edgeLabel :: (Node, Node, EdgeInfo) -> Attributes
-{-edgeLabel (_,_,(EdgeInfo _ w)) = [penWidth (5*w)-}
-        {-, Label . StrLabel . pack $ (show $ approxRational w 0.1)]-}
 edgeLabel (_,_,(EdgeInfo _ w)) = [penWidth (5*w), Label . StrLabel . pack $ (printf "%3.0f" (100*w))]
 
 drawGeneGraph :: DirectedGraph -> Args String -> IO ()
