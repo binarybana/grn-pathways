@@ -14,9 +14,9 @@ Installing
 ----------
 Assuming you have Haskell installed and the appropriate prerequisites:
 
-> cabal configure
-> cabal build
-> ./grnsim -m d -r -e "tnf=0 lps=1 ltbr=0" "pws/nfkb-super.pw" --n4 1
+    cabal configure
+    cabal build
+    ./grnsim -m d -r -e "tnf=0 lps=1 ltbr=0" "pws/nfkb-super.pw" --n4 1
 
 Or run ./simruns (a short python script) and compare to gold.txt to make sure 
 everything is running alright (I know, its a poor man's way to test, but I've 
