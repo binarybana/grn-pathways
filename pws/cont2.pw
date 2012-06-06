@@ -1,0 +1,21 @@
+a()
+b()
+c()
+
+b -1,0-> a
+b -0,1-> a
+a -1,1-> b
+
+b -1,0-> c
+b -0,1-> c
+a -1,1-> c
+
+<control>
+  <targets>
+  c=0.01
+  </targets>
+
+  <controls>
+  a
+  </controls>
+</control>

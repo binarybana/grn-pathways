@@ -1,0 +1,35 @@
+#!/bin/bash
+
+p=0.0
+
+rm moham_*
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=0 lps=0 ltbr=0"
+mv moham.dat moham_000.dat
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=0 lps=0 ltbr=1"
+mv moham.dat moham_001.dat
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=0 lps=1 ltbr=0"
+mv moham.dat moham_010.dat
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=0 lps=1 ltbr=1"
+mv moham.dat moham_011.dat
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=1 lps=0 ltbr=0"
+mv moham.dat moham_100.dat
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=1 lps=0 ltbr=1"
+mv moham.dat moham_101.dat
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=1 lps=1 ltbr=0"
+mv moham.dat moham_110.dat
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=1 lps=1 ltbr=1"
+mv moham.dat moham_111.dat
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=1"
+mv moham.dat moham_1xx.dat
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "lps=1"
+mv moham.dat moham_x1x.dat

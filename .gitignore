@@ -1,5 +1,3 @@
-syntax: glob
-
 *.svg
 *.dot
 *.hi
