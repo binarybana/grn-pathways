@@ -27,7 +27,7 @@ Executable GrnSim
   Main-is:	        GrnSim.hs
   Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
                     regex-posix,directory,filepath,parseargs,Graphalyze,
-                    random,statistics,gnuplot,vector,vector-fftw,parallel,
+                    random,statistics,gnuplot,vector,parallel,
                     deepseq,vector-strategies >0.1,pretty,text,
                     math-functions,mwc-random
   ghc-options:
@@ -46,7 +46,7 @@ Library
   if flag(library)
     Build-Depends:    base >= 4,fgl,parsec,graphviz,containers,process,
                       regex-posix,directory,filepath,parseargs,Graphalyze,
-                      random,statistics,gnuplot,vector,vector-fftw,parallel,
+                      random,statistics,gnuplot,vector,parallel,
                       deepseq,vector-strategies>0.1,pretty,text,
                       math-functions,mwc-random
   Else

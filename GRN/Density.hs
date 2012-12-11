@@ -33,7 +33,7 @@ import qualified Data.Vector.Generic as G
 
 import Control.Parallel.Strategies
 
-import Numeric.FFT.Vector.Unitary
+{-import Numeric.FFT.Vector.Unitary-}
 
 import Data.Graph.Analysis.Algorithms.Common (componentsOf)
 
@@ -66,15 +66,15 @@ normalize xv = let scale = 1.0 / (step * G.sum xv) in G.map (*scale) xv
 clamp xv = G.map (\x->if x<0 then 0 else x) xv
 
 -- Assume that both xs and ys are the same size
-convolve xs ys = G.slice start l uncentered
-  where
-    xsF = run dftR2C (xs G.++ zeros)
-    ysF = run dftR2C (ys G.++ zeros)
-    l = G.length xs
-    start = floor $ (fromIntegral l)/2
-    zeros = U.replicate l 0.0
-    mult = G.zipWith (*) xsF ysF
-    uncentered = run dftC2R mult
+convolve xs ys = error "FFTW out of date." --G.slice start l uncentered
+  {-where-}
+    {-xsF = run dftR2C (xs G.++ zeros)-}
+    {-ysF = run dftR2C (ys G.++ zeros)-}
+    {-l = G.length xs-}
+    {-start = floor $ (fromIntegral l)/2-}
+    {-zeros = U.replicate l 0.0-}
+    {-mult = G.zipWith (*) xsF ysF-}
+    {-uncentered = run dftC2R mult-}
 
 calcEsts :: GeneMC -> AttractorDensity
 calcEsts = M.map myEst

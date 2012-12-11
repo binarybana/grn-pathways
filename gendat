@@ -1,0 +1,16 @@
+#!/bin/bash
+
+p=$1
+
+rm moham_*
+
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=0 lps=0 ltbr=0" > moham_000.dat &
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=0 lps=0 ltbr=1" > moham_001.dat &
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=0 lps=1 ltbr=0" > moham_010.dat &
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=0 lps=1 ltbr=1" > moham_011.dat &
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=1 lps=0 ltbr=0" > moham_100.dat &
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=1 lps=0 ltbr=1" > moham_101.dat &
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=1 lps=1 ltbr=0" > moham_110.dat &
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=1 lps=1 ltbr=1" > moham_111.dat &
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "tnf=1" > moham_1xx.dat &
+./grnsim -m m -p $p pws/nfkb-moham.pw -e "lps=1" > moham_x1x.dat &

@@ -42,7 +42,7 @@ import qualified Data.Text.Lazy.IO as T
 -- type DirectedGraph = Gr String String
 
 labelFn :: (Node,NodeInfo) -> Attributes
-labelFn (_, (NodeInfo name prob)) = [Label . StrLabel . pack $ name, FillColor $ HSV 0 0 shade, 
+labelFn (_, (NodeInfo name prob)) = [Label . StrLabel . pack $ name, FillColor $ [HSV 0 0 shade], 
         Style [SItem Filled []]]
   where   shade = 1 - (clamp $ prob**0.4) -- The 0.4 is a gamma correction factor
           clamp x = if x>1 then 1 else if x<0 then 0 else x

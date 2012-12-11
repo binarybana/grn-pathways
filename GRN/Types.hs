@@ -44,9 +44,6 @@ type DirectedGraph = Gr String String
 -- | Right now we're assuming a stationary control policy
 type ControlPolicy = [(Gene,Bool)]
 
-instance NFData SSA where
-    rnf vec = seq vec ()
-
 -- An attractor contains the prior probability, the estimated densities for
 -- each gene, and the normalized, reduced state graph.
 

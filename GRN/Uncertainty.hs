@@ -113,13 +113,12 @@ uncertaintyPrint args p = do
     kmaps = map (fillKentries uvals ks) hypergrid
     ssds = parMap rdeepseq (collapseSSD p . simulateDOKUnif args . flip kmapToDOK 0) kmaps 
 
-  writeFile "moham.dat" (pprint ssds)
+  putStr (pprint ssds)
   {-plotList [] (U.toList . head $ ssds)-}
 
   {-print $ map U.length ssds-}
   {-putStrLn ""-}
-  print $ length ssds
-  putStrLn ""
+  {-print $ length ssds-}
   {-print $ map (fst . normalizeSSD) ssds-}
   {-print $ "Optimum Theta: " ++ show optimumTheta-}
 
